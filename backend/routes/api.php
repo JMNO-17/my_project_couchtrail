@@ -2,42 +2,30 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\HostingController;
-use App\Http\Controllers\HostingRequestController;
-use App\Http\Controllers\MessageController;
-use App\Http\Controllers\PlaceController;
-use App\Http\Controllers\ReviewController;
-use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\RoleController;
+use App\Http\Controllers\API\UserController;
+use App\Http\Controllers\API\ProductController;
+use App\Http\Controllers\API\CategoryController;
+use App\Http\Controllers\API\PermissionController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-| These routes are for token-based API use (e.g. React/Vue frontend).
-*/
+Route::get('/user', function (Request $request) {
+    return $request->user();
+})->middleware('auth:sanctum');
 
-// Public Auth Endpoints
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
 
-// Protected API routes
-Route::middleware(['auth:sanctum'])->group(function () {
-    // Authenticated user profile
-    Route::get('/user', [UserController::class, 'profile']);
-   
+Route::post('/auth/login', [AuthController::class, 'login']);
 
-    // Resource routes for CouchTrail features
-    Route::apiResource('hostings', HostingController::class);
-    Route::apiResource('hosting-requests', HostingRequestController::class);
-    Route::apiResource('messages', MessageController::class);
-    Route::apiResource('places', PlaceController::class);
-    Route::apiResource('reviews', ReviewController::class);
+Route::apiResource('/users', UserController::class);
 
-    // Admin-only API routes
-    Route::middleware('role:admin')->prefix('admin')->group(function () {
-        Route::get('/users', [UserManagementController::class, 'index']);
-        Route::delete('/users/{id}', [UserManagementController::class, 'destroy']);
-    });
+Route::apiResource('/roles', RoleController::class);
+
+Route::apiResource('/permissions', PermissionController::class);
+
+Route::group(['middleware' => 'auth:api'], function () {
+    Route::post('/auth/register', [AuthController::class, 'register']);
+
+    Route::apiResource('/categories', CategoryController::class);
+
+    Route::apiResource('/products', ProductController::class);
 });

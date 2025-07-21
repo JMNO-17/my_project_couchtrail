@@ -2,84 +2,65 @@
 
 namespace App\Models;
 
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Notifications\Notifiable;
+use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 
-// Import related models for relationships
-use App\Models\Hosting;
-use App\Models\HostingRequest;
-use App\Models\Message;
-use App\Models\Place;
-use App\Models\Review;
-
-class User extends Authenticatable
+class User extends Authenticatable implements JWTSubject
 {
-    use HasFactory, Notifiable;
+    /** @use HasFactory<\Database\Factories\UserFactory> */
+    use HasFactory, Notifiable, HasRoles;
 
-    // Mass assignable fields
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
     protected $fillable = [
         'name',
         'email',
+        'address',
+        'phone',
+        'gender',
+        'status',
+        'image',
         'password',
-        'profile_image',
-        'region',
-        'is_verified',
-        'role',
+
     ];
 
-    // Hidden fields for serialization
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    // Cast fields to native types
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-        'is_verified' => 'boolean',
-    ];
-
-    // Relationships
-
-    public function hostings()
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
     {
-        return $this->hasOne(Hosting::class);
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
     }
 
-    public function hostingRequestsSent()
+    public function getJWTIdentifier()
     {
-        return $this->hasMany(HostingRequest::class, 'traveler_id');
+        return $this->getKey();
     }
 
-    public function hostingRequestsReceived()
+    public function getJWTCustomClaims()
     {
-        return $this->hasMany(HostingRequest::class, 'host_id');
-    }
-
-    public function messagesSent()
-    {
-        return $this->hasMany(Message::class, 'sender_id');
-    }
-
-    public function messagesReceived()
-    {
-        return $this->hasMany(Message::class, 'receiver_id');
-    }
-
-    public function places()
-    {
-        return $this->hasMany(Place::class);
-    }
-
-    public function reviewsGiven()
-    {
-        return $this->hasMany(Review::class, 'reviewer_id');
-    }
-
-    public function reviewsReceived()
-    {
-        return $this->hasMany(Review::class, 'reviewed_id');
+        return [];
     }
 }

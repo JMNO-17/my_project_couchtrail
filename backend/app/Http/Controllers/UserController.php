@@ -2,35 +2,136 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
+use App\Http\Requests\UserRequest;
+use App\Services\User\UserService;
+use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Hash;
+use App\Http\Requests\UserUpdateRequest;
+use App\Repositories\Role\RoleRepositoryInterface;
+use App\Repositories\User\UserRepositoryInterface;
 
 class UserController extends Controller
 {
-    // Get logged-in user profile
-    public function profile()
+    /**
+     * Display a listing of the resource.
+     */
+    protected $userRepository;
+    protected $roleRepository;
+    protected $userService;
+
+    public function __construct(UserRepositoryInterface $userRepository, UserService $userService)
     {
-        return response()->json(Auth::user());
+        $this->middleware('auth');
+        $this->userRepository = $userRepository;
+        $this->userService = $userService;
     }
 
-    // Update user profile
-    public function update(Request $request)
+    public function index()
     {
-        $user = Auth::user();
+        $users = $this->userRepository->index();
 
-        $validated = $request->validate([
-            'name' => 'nullable|string|max:255',
-            'email' => ['nullable', 'email', Rule::unique('users')->ignore($user->id)],
-            'profile_image' => 'nullable|string|max:255',
-            'region' => 'nullable|string|max:100',
-        ]);
+        return view('users.index', compact('users'));
+    }
 
-        $user->update($validated);
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        $roles = Role::get();
+        return view('users.create', compact('roles'));
+    }
 
-        return response()->json([
-            'message' => 'Profile updated successfully',
-            'user' => $user,
-        ]);
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(UserRequest $request)
+    {
+
+        $validatedData = $request->validated();
+
+        // echo "<br/><br/>";
+        // echo count($validatedData);
+
+        $data = [
+            'name' => $validatedData['name'],
+            'email' => $validatedData['email'],
+            'password' => Hash::make($validatedData['password']),
+            'phone' => $validatedData['phone'],
+            'gender' => $validatedData['gender'],
+            'address' => $validatedData['address'],
+        ];
+
+        $user = $this->userRepository->store($data);
+        // // User::create($data);
+
+
+        $user->roles()->sync($validatedData['roles']);
+
+        return redirect()->route('users.index');
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(string $id)
+    {
+        $user = $this->userRepository->show($id);
+
+        $roles = $this->userRepository->create();
+
+        return view('users.edit', compact('user', 'roles'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(UserUpdateRequest $request, string $id)
+    {
+        $validatedData = $request->validated();
+
+        $data = [
+            'name' => $validatedData['name'],
+            'email' => $validatedData['email'],
+            'phone' => $validatedData['phone'],
+            'address' => $validatedData['address'],
+            'gender' => $validatedData['gender'],
+
+        ];
+
+        $user = $this->userRepository->show($id);
+
+        $user->update($data);
+
+        $user->roles()->sync($validatedData["roles"]);
+
+        return redirect()->route('users.index');
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function delete(string $id)
+    {
+        $this->userRepository->delete($id);
+
+        return redirect()->route('users.index');
+    }
+
+    public function status($id)
+    {
+        $this->userService->status($id);
+
+        return redirect()->route('users.index');
     }
 }
