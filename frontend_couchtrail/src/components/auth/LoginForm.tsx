@@ -2,15 +2,13 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-
+import { Button } from '@/components/ui/enhanced-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Mail, Lock } from 'lucide-react';
-
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -111,11 +109,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
               <p className="text-sm text-destructive">{errors.password.message}</p>
             )}
           </div>
-          <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
+          {/* <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
             <strong>Demo accounts:</strong><br />
             Admin: admin@travel.com / password<br />
             User: john@travel.com / password
-          </div>
+          </div> */}
         </CardContent>
         <CardFooter className="flex flex-col space-y-3">
           <Button

@@ -2,17 +2,19 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Request;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
     /**
      * Register new user and assign role
      */
+
     public function register(Request $request)
     {
         $request->validate([
@@ -47,15 +49,13 @@ class AuthController extends Controller
 
         $user = User::where('email',$credentials['email'])->first();
 
-        return $user;
-
-
-
         if (!$token = JWTAuth::attempt($credentials)) {
             return response()->json(['error' => 'Invalid credentials'], 401);
         }
 
         $user = auth()->guard('api')->user();
+
+        $token = JWTAuth::fromUser($user);
 
         return response()->json([
             'user'  => $user,
@@ -93,4 +93,10 @@ class AuthController extends Controller
             return response()->json(['error' => 'Token error: ' . $e->getMessage()], 401);
         }
     }
+
+    // public function posts(){
+
+    //     return Auth::user();
+
+    // }
 }

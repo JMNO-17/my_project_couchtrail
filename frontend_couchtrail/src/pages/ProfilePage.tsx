@@ -123,10 +123,10 @@ export const ProfilePage = () => {
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   {user.email}
                 </div>
-                <div className="flex items-center gap-2 text-sm">
+                {/* <div className="flex items-center gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   Joined {format(new Date(user.created_at), 'MMM yyyy')}
-                </div>
+                </div> */}
                 {user.isAdmin && (
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4 text-primary" />
@@ -223,7 +223,3 @@ export const ProfilePage = () => {
     </div>
   );
 };
-
-
-
-

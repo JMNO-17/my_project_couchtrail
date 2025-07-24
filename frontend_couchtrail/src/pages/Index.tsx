@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/enhanced-button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/components/auth/AuthContext';
 import { 
@@ -14,7 +14,7 @@ import {
   Plane,
   Home as HomeIcon
 } from 'lucide-react';
-// import heroImage from '@/assets/hero-travel.jpg';
+
 
 const Index = () => {
   const { user } = useAuth();
@@ -69,8 +69,7 @@ const Index = () => {
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <img
-            // src={heroImage}
-            src="/assets/hero-travel.jpg"
+            src="./public/hero-travel.jpg"
             alt="Travel Community"
             className="w-full h-full object-cover"
           />
@@ -123,7 +122,7 @@ const Index = () => {
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-              Why Choose TravelConnect?
+              Why Choose CouchTrail?
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Experience the world through the eyes of locals and create connections that last a lifetime

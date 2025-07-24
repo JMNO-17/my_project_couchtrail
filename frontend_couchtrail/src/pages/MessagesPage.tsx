@@ -1,29 +1,58 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import { useDemo } from '@/hooks/useDemo';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
 import { Badge } from '@/components/ui/badge';
 import { Send, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Conversation } from '@/types';
-import { Avatar, AvatarFallback } from '@/components/ui/avator';
-import { AvatarImage } from '@radix-ui/react-avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 
 export const MessagesPage = () => {
   const { user } = useAuth();
-  const { getEnrichedConversations, getEnrichedMessages, addMessage } = useDemo();
+  const { getEnrichedConversations, getEnrichedMessages, addMessage, users } = useDemo();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [newMessage, setNewMessage] = useState('');
+  const [searchParams] = useSearchParams();
 
   if (!user) return null;
 
   const conversations = getEnrichedConversations().filter(
     conv => conv.user1_id === user.id || conv.user2_id === user.id
   );
+
+  useEffect(() => {
+    const userIdParam = searchParams.get('user');
+    if (userIdParam && !selectedConversation) {
+      const targetUserId = parseInt(userIdParam);
+      const existingConversation = conversations.find(conv => 
+        (conv.user1_id === user.id && conv.user2_id === targetUserId) ||
+        (conv.user2_id === user.id && conv.user1_id === targetUserId)
+      );
+
+      if (existingConversation) {
+        setSelectedConversation(existingConversation);
+      } else {
+        const targetUser = users.find(u => u.id === targetUserId);
+        if (targetUser) {
+          const tempConversation: Conversation = {
+            id: -1,
+            user1_id: user.id,
+            user2_id: targetUserId,
+            user1: user,
+            user2: targetUser,
+            created_at: new Date().toISOString(),
+            lastMessage: null
+          };
+          setSelectedConversation(tempConversation);
+        }
+      }
+    }
+  }, [searchParams, conversations, user.id, users, selectedConversation]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation) return;
@@ -59,7 +88,6 @@ export const MessagesPage = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
-          {/* Conversations List */}
           <Card className="lg:col-span-1 shadow-travel">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -111,7 +139,6 @@ export const MessagesPage = () => {
             </CardContent>
           </Card>
 
-          {/* Chat Area */}
           <Card className="lg:col-span-2 shadow-travel">
             {selectedConversation ? (
               <>
@@ -134,7 +161,6 @@ export const MessagesPage = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0 flex flex-col h-[500px]">
-                  {/* Messages */}
                   <ScrollArea className="flex-1 p-4">
                     <div className="space-y-4">
                       {getEnrichedMessages(selectedConversation.id).map((message) => (
@@ -161,7 +187,6 @@ export const MessagesPage = () => {
                     </div>
                   </ScrollArea>
 
-                  {/* Message Input */}
                   <div className="border-t p-4">
                     <div className="flex gap-2">
                       <Input

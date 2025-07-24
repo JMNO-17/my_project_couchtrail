@@ -27,6 +27,10 @@ class User extends Authenticatable implements JWTSubject
      * Hide these fields in JSON output.
      */
     protected $hidden = [
+        'created_at',
+        'updated_at',
+        'email_verified_at',
+
         'password',
         'remember_token',
     ];

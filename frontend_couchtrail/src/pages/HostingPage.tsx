@@ -1,231 +1,233 @@
 import { useState } from 'react';
-import { useAuth } from '@/components/auth/AuthContext';
-import { useDemo } from '@/hooks/useDemo';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Home, MapPin, Calendar, Plus, Edit } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  Home, 
+  MapPin, 
+  Users, 
+  Wifi, 
+  Car, 
+  Coffee, 
+  Tv, 
+  Waves,
+  ArrowLeft,
+  CheckCircle
+} from 'lucide-react';
 
 export const HostingPage = () => {
-  const { user } = useAuth();
-  const { getEnrichedHostings, addHosting } = useDemo();
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
-    home_description: '',
     address: '',
-    preferences: '',
+    homeDescription: '',
     details: '',
-    additional_info: '',
-    availability_calendar: ''
+    amenities: [] as string[],
+    maxGuests: '1',
+    availability: ''
   });
 
-  if (!user) return null;
+  const amenityOptions = [
+    { id: 'wifi', label: 'WiFi', icon: Wifi },
+    { id: 'parking', label: 'Parking', icon: Car },
+    { id: 'kitchen', label: 'Kitchen Access', icon: Coffee },
+    { id: 'tv', label: 'TV', icon: Tv },
+    { id: 'pool', label: 'Pool/Beach Access', icon: Waves },
+  ];
 
-  const hostings = getEnrichedHostings();
-  const userHosting = hostings.find(h => h.user_id === user.id);
+  const handleAmenityToggle = (amenityId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      amenities: prev.amenities.includes(amenityId)
+        ? prev.amenities.filter(a => a !== amenityId)
+        : [...prev.amenities, amenityId]
+    }));
+  };
 
-  const handleSubmit = () => {
-    if (!formData.home_description || !formData.address) {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!formData.address || !formData.homeDescription) {
       toast({
-        title: "Error",
-        description: "Please fill in the required fields",
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
         variant: "destructive"
       });
       return;
     }
 
-    addHosting({
-      user_id: user.id,
-      ...formData
-    });
+    // Save hosting profile to localStorage for demo purposes
+    const hostingProfile = {
+      ...formData,
+      amenities: formData.amenities,
+      createdAt: new Date().toISOString()
+    };
+    localStorage.setItem('userHostingProfile', JSON.stringify(hostingProfile));
 
     toast({
-      title: "Success",
-      description: "Your hosting profile has been created!",
+      title: "Hosting Profile Created!",
+      description: "Your hosting profile has been created successfully.",
     });
 
-    setIsCreating(false);
-    setFormData({
-      home_description: '',
-      address: '',
-      preferences: '',
-      details: '',
-      additional_info: '',
-      availability_calendar: ''
-    });
+    // Navigate back to profile
+    navigate('/profile');
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 p-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-2xl mx-auto">
         <div className="mb-8">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/profile')}
+            className="mb-4"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Profile
+          </Button>
+          
           <h1 className="text-3xl font-bold bg-gradient-text bg-clip-text text-transparent">
-            My Hosting
+            Become a Host
           </h1>
           <p className="text-muted-foreground mt-2">
-            Welcome travelers to your home
+            Share your space and connect with travelers from around the world
           </p>
         </div>
 
-        {userHosting ? (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic Information */}
           <Card className="shadow-travel">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Home className="h-5 w-5" />
-                  Your Hosting Profile
-                </CardTitle>
-                <Button variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-              </div>
+              <CardTitle className="flex items-center gap-2">
+                <Home className="w-5 h-5" />
+                Basic Information
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4">
               <div>
-                <h3 className="font-semibold mb-2">Home Description</h3>
-                <p className="text-muted-foreground">{userHosting.home_description}</p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>{userHosting.address}</span>
-              </div>
-
-              <div>
-                <h3 className="font-semibold mb-2">Preferences</h3>
-                <p className="text-muted-foreground">{userHosting.preferences}</p>
+                <Label htmlFor="address">Address *</Label>
+                <Input
+                  id="address"
+                  placeholder="Your location (city, country)"
+                  value={formData.address}
+                  onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                  className="mt-1"
+                />
               </div>
 
               <div>
-                <h3 className="font-semibold mb-2">Details</h3>
-                <p className="text-muted-foreground">{userHosting.details}</p>
+                <Label htmlFor="homeDescription">Home Description *</Label>
+                <Textarea
+                  id="homeDescription"
+                  placeholder="Describe your home and what makes it special..."
+                  value={formData.homeDescription}
+                  onChange={(e) => setFormData(prev => ({ ...prev, homeDescription: e.target.value }))}
+                  className="mt-1 min-h-[100px]"
+                />
               </div>
 
-              {userHosting.additional_info && (
-                <div>
-                  <h3 className="font-semibold mb-2">Additional Information</h3>
-                  <p className="text-muted-foreground">{userHosting.additional_info}</p>
-                </div>
-              )}
-
               <div>
-                <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Availability
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {userHosting.availability_calendar.split(',').map((date, index) => (
-                    <Badge key={index} variant="secondary">
-                      {new Date(date).toLocaleDateString()}
-                    </Badge>
-                  ))}
-                </div>
+                <Label htmlFor="maxGuests">Maximum Guests</Label>
+                <Input
+                  id="maxGuests"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={formData.maxGuests}
+                  onChange={(e) => setFormData(prev => ({ ...prev, maxGuests: e.target.value }))}
+                  className="mt-1"
+                />
               </div>
             </CardContent>
           </Card>
-        ) : (
-          <div className="space-y-6">
-            {/* {!isCreating ? (
-              // <Card className="shadow-travel">
-              //   <CardContent className="text-center py-12">
-              //     <Home className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              //     <h3 className="text-xl font-semibold mb-2">Create Your Hosting Profile</h3>
-              //     <p className="text-muted-foreground mb-6">
-              //       Start welcoming travelers and share your local knowledge
-              //     </p>
-              //     <Button onClick={() => setIsCreating(true)} className="bg-gradient-hero">
-              //       <Plus className="h-4 w-4 mr-2" />
-              //       Create Hosting Profile
-              //     </Button>
-              //   </CardContent>
-              // </Card>
-            ) : ( */}
-              <Card className="shadow-travel">
-                <CardHeader>
-                  <CardTitle>Create Your Hosting Profile</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium">Home Description *</label>
-                    <Textarea
-                      placeholder="Describe your home and what makes it special..."
-                      value={formData.home_description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, home_description: e.target.value }))}
-                      className="mt-1"
-                    />
-                  </div>
 
-                  <div>
-                    <label className="text-sm font-medium">Address *</label>
-                    <Input
-                      placeholder="City, Country"
-                      value={formData.address}
-                      onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Guest Preferences</label>
-                    <Textarea
-                      placeholder="What kind of guests do you prefer? Any house rules?"
-                      value={formData.preferences}
-                      onChange={(e) => setFormData(prev => ({ ...prev, preferences: e.target.value }))}
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Accommodation Details</label>
-                    <Textarea
-                      placeholder="Room type, bathroom access, shared spaces..."
-                      value={formData.details}
-                      onChange={(e) => setFormData(prev => ({ ...prev, details: e.target.value }))}
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Additional Information</label>
-                    <Textarea
-                      placeholder="Nearby attractions, transport links, house amenities..."
-                      value={formData.additional_info}
-                      onChange={(e) => setFormData(prev => ({ ...prev, additional_info: e.target.value }))}
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Available Dates</label>
-                    <Input
-                      placeholder="2024-02-01,2024-02-15,2024-03-01 (comma-separated)"
-                      value={formData.availability_calendar}
-                      onChange={(e) => setFormData(prev => ({ ...prev, availability_calendar: e.target.value }))}
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div className="flex gap-2 pt-4">
-                    <Button onClick={handleSubmit} >
-                      Create Profile
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setIsCreating(false)}
+          {/* Amenities */}
+          <Card className="shadow-travel">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5" />
+                Amenities
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {amenityOptions.map((amenity) => {
+                  const Icon = amenity.icon;
+                  const isSelected = formData.amenities.includes(amenity.id);
+                  
+                  return (
+                    <Button
+                      key={amenity.id}
+                      type="button"
+                      variant={isSelected ? "default" : "outline"}
+                      onClick={() => handleAmenityToggle(amenity.id)}
+                      className="h-auto py-3 flex flex-col gap-2"
                     >
-                      Cancel
+                      <Icon className="w-5 h-5" />
+                      <span className="text-sm">{amenity.label}</span>
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            {/* )} */}
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Additional Details */}
+          <Card className="shadow-travel">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Additional Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="details">House Rules & Additional Info</Label>
+                <Textarea
+                  id="details"
+                  placeholder="Share any house rules, nearby attractions, or other helpful information for guests..."
+                  value={formData.details}
+                  onChange={(e) => setFormData(prev => ({ ...prev, details: e.target.value }))}
+                  className="mt-1 min-h-[100px]"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="availability">Availability</Label>
+                <Input
+                  id="availability"
+                  placeholder="When are you available to host? (e.g., Weekends, Summer months)"
+                  value={formData.availability}
+                  onChange={(e) => setFormData(prev => ({ ...prev, availability: e.target.value }))}
+                  className="mt-1"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Submit */}
+          <div className="flex gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate('/profile')}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 "
+            >
+              Create Hosting Profile
+            </Button>
           </div>
-        )}
+        </form>
       </div>
     </div>
   );
