@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import API from '@/api';
 
 export interface User {
   id: number;
@@ -16,6 +17,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  updateProfile: (data: Partial<User>) => Promise<User | null>;
   isLoading: boolean;
 }
 
@@ -23,9 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
 
@@ -34,85 +34,93 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate checking for existing session
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
+    const fetchUser = async () => {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const res = await API.get('/me');
+        setUser(res.data);
+      } catch {
+        localStorage.removeItem('accessToken');
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUser();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Demo users for testing
-    const demoUsers: User[] = [
-      {
-        id: 1,
-        name: 'Admin User',
-        email: 'admin@travel.com',
-        isAdmin: true,
-        role: 'admin',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: 2,
-        name: 'John Traveler',
-        email: 'john@travel.com',
-        isAdmin: false,
-        role: 'user',
-        region: 'Europe',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=john',
-        created_at: '2024-01-02T00:00:00Z'
-      }
-    ];
-    
-    const foundUser = demoUsers.find(u => u.email === email);
-    
-    if (foundUser && password === 'password') {
-      setUser(foundUser);
-      localStorage.setItem('user', JSON.stringify(foundUser));
-      setIsLoading(false);
+    try {
+      const res = await API.post('/login', { email, password });
+      const token = res.data.token;
+      const user = res.data.user;
+
+      localStorage.setItem('accessToken', token);
+      setUser(user);
       return true;
+    } catch {
+      return false;
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
-    return false;
   };
 
   const register = async (name: string, email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const newUser: User = {
-      id: Date.now(),
-      name,
-      email,
-      isAdmin: false,
-      role: 'user',
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
-      created_at: new Date().toISOString()
-    };
-    
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    setIsLoading(false);
-    return true;
+    try {
+      const res = await API.post('/register', { name, email, password });
+      const token = res.data.token;
+      const user = res.data.user;
+
+      localStorage.setItem('accessToken', token);
+      setUser(user);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+  try {
+    // Optional: call Laravel API to revoke token if supported
+    await API.post('/logout');
+  } catch (error) {
+    // Ignore error if logout endpoint isn't implemented
+    console.warn('Logout request failed on backend (possibly not implemented).');
+  } finally {
+    // Always clear local storage and auth state
+    localStorage.removeItem('accessToken');
     setUser(null);
-    localStorage.removeItem('user');
+
+    // Optional: clear all user-related localStorage if used
+    localStorage.removeItem('userHostingProfile');
+
+    // Redirect to login or homepage
+    window.location.href = '/auth';
+  }
+};
+
+  const updateProfile = async (data: Partial<User>): Promise<User | null> => {
+    try {
+      const res = await API.patch('/profile', data);
+      setUser(res.data);
+      return res.data;
+    } catch {
+      return null;
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, updateProfile, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

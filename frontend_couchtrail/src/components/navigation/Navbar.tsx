@@ -38,7 +38,7 @@ export const Navbar: React.FC = () => {
               <Home className="w-4 h-4 text-primary-foreground" />
             </div> */}
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-              TravelConnect
+              CouchTrail
             </span>
           {/* </Link> */}
 

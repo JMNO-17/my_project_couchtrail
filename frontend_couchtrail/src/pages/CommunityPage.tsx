@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/enhanced-button';
+import { useNavigate } from 'react-router-dom';
 
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -15,8 +16,8 @@ import {
   Home,
   Calendar
 } from 'lucide-react';
-import { Avatar } from '@radix-ui/react-avatar';
-import { AvatarFallback, AvatarImage } from '@/components/ui/avator';
+import { Avatar, AvatarFallback } from '@radix-ui/react-avatar';
+import { AvatarImage } from '@/components/ui/avator';
 
 interface Host {
   id: number;
@@ -44,6 +45,7 @@ interface Traveler {
 export const CommunityPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'hosts' | 'travelers'>('hosts');
   const [searchQuery, setSearchQuery] = useState('');
+const navigate = useNavigate();
 
   const hosts: Host[] = [
     {
@@ -231,14 +233,20 @@ export const CommunityPage: React.FC = () => {
                   </div>
 
                   <div className="flex space-x-2 pt-2">
-                    <Button variant="hero" size="sm" className="flex-1">
+                    <Button 
+                      variant="hero" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => window.location.href = `/messages?user=${host.id}`}
+                    >
                       <MessageCircle className="w-4 h-4 mr-1" />
                       Message
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => window.location.href = `/profile/${host.id}`}
+                      onClick={() => navigate(`/profile/${host.id}`)}
+
                     >
                       View Profile
                     </Button>
@@ -296,14 +304,20 @@ export const CommunityPage: React.FC = () => {
                   </div>
 
                   <div className="flex space-x-2 pt-2">
-                    <Button variant="travel" size="sm" className="flex-1">
+                    <Button 
+                      variant="travel" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => window.location.href = `/messages?user=${traveler.id}`}
+                    >
                       <MessageCircle className="w-4 h-4 mr-1" />
                       Connect
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => window.location.href = `/profile/${traveler.id}`}
+                     onClick={() => navigate(`/profile/${traveler.id}`)}
+
                     >
                       View Profile
                     </Button>

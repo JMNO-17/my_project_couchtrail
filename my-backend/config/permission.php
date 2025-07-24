@@ -2,6 +2,10 @@
 
 return [
 
+    'defaults' => [
+        'guard_name' => 'api', // ✅ Make sure this matches your auth guard
+    ],
+
     'models' => [
 
         /*

@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { useAuth } from '@/components/auth/AuthContext';
-// import heroImage from '@/assets/hero-travel.jpg';
+
 
 export const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -29,8 +29,7 @@ export const AuthPage: React.FC = () => {
       {/* Left side - Hero Image */}
       <div className="hidden lg:flex lg:w-1/2 relative">
         <img
-          // src={heroImage}
-          src="/assets/hero-travel.jpg"
+          src="./public/hero-travel.jpg"
           alt="Travel Community"
           className="w-full h-full object-cover"
         />
