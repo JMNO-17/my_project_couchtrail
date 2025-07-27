@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import API from '@/api';
 
 export interface User {
+  isHost: boolean;
   id: number;
   name: string;
   email: string;
@@ -41,6 +42,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      console.log(token, "DDDDD")
+
       try {
         const res = await API.get('/me');
         setUser(res.data);
@@ -62,7 +65,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const token = res.data.token;
       const user = res.data.user;
 
-      localStorage.setItem('accessToken', token);
+      console.log(user, "USSS")
+
+      if(res.status === 200){
+  localStorage.setItem('accessToken', token);
+    localStorage.setItem('user', JSON.stringify(user));
+
+      }
+
+    
       setUser(user);
       return true;
     } catch {

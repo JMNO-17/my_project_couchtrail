@@ -13,9 +13,12 @@ class RolePermissionSeeder extends Seeder
         $admin = Role::findByName('admin');
         $client = Role::findByName('client');
 
-        $permissions = Permission::all();
+        // $permissions = Permission::all();
 
-        $admin->syncPermissions($permissions);
+        // $admin->syncPermissions($permissions);
+        // $client->syncPermissions(['view_profile', 'edit_profile', 'host_travelers', 'book_travel']);
+
+        $admin->syncPermissions(['admin_panel']);
         $client->syncPermissions(['view_profile', 'edit_profile', 'host_travelers', 'book_travel']);
     }
 }

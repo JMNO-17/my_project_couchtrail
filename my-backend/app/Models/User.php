@@ -50,4 +50,10 @@ class User extends Authenticatable implements JWTSubject
     {
         return [];
     }
+
+    public function listings()
+{
+    return $this->hasMany(HostingListing::class, 'host_id');
+}
+
 }

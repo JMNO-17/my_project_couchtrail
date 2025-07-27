@@ -22,6 +22,8 @@ export const ProfilePage = () => {
     region: user?.region || ''
   });
 
+
+  
   if (!user) return null;
 
   const reviews = getEnrichedReviews().filter(r => r.reviewed_id === user.id);
