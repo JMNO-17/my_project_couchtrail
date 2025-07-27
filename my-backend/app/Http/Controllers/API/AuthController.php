@@ -53,13 +53,23 @@ class AuthController extends Controller
             return response()->json(['error' => 'Invalid credentials'], 401);
         }
 
+        $roleName = $user->getRoleNames()->first();  // returns the first role name as a string
+
         $user = auth()->guard('api')->user();
 
         $token = JWTAuth::fromUser($user);
 
+        $user = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $roleName,
+        ];
+
         return response()->json([
             'user'  => $user,
-            'token' => $token
+            'token' => $token,
+
         ]);
     }
 
@@ -82,7 +92,16 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         try {
-            $user = auth()->guard('api')->user();
+            $user = User::where('id',Auth::user()->id)->first();
+
+             $roleName = $user->getRoleNames()->first();  // returns the first role name as a string
+
+             $user = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $roleName,
+        ];
 
             if (!$user) {
                 return response()->json(['error' => 'Unauthenticated.'], 401);

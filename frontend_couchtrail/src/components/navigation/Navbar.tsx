@@ -19,11 +19,28 @@ export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
 
+    const account  =localStorage.getItem('user');
+
+    const users = JSON.parse(account);
+
   const navItems = [
     { name: 'Community', href: '/community', icon: Users },
     { name: 'Messages', href: '/messages', icon: MessageCircle },
   ];
 
+
+    const adminRoutes = [
+    { name: 'Community', href: '/community', icon: Users },
+  ];
+
+    const userRoutes = [
+    { name: 'Community', href: '/community', icon: Users },
+    { name: 'Messages', href: '/messages', icon: MessageCircle },
+  ];
+
+
+  
+  
   const isActivePath = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(path);
   };
@@ -42,9 +59,12 @@ export const Navbar: React.FC = () => {
             </span>
           {/* </Link> */}
 
+          
+
           {/* Navigation Links for non-admin users */}
-          {user && !user.isAdmin && (
+          {user && user.role !== 'admin'  && (
             <div className="hidden md:flex items-center space-x-1">
+           
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -84,7 +104,7 @@ export const Navbar: React.FC = () => {
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">{user.name}</p>
                       <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                      {user.isAdmin && (
+                      {user.role == 'admin' && (
                         <div className="flex items-center space-x-1 mt-1">
                           <Shield className="w-3 h-3 text-primary" />
                           <span className="text-xs text-primary font-medium">Admin</span>
@@ -95,7 +115,7 @@ export const Navbar: React.FC = () => {
                   <DropdownMenuSeparator />
 
                   {/* Profile Settings for non-admin users */}
-                  {!user.isAdmin && (
+                  {user.role !== 'admin' && (
                     <DropdownMenuItem asChild>
                       <Link to="/profile" className="flex items-center space-x-2">
                         <Settings className="w-4 h-4" />

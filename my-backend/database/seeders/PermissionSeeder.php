@@ -13,5 +13,6 @@ class PermissionSeeder extends Seeder
         Permission::firstOrCreate(['name' => 'edit_profile']);
         Permission::firstOrCreate(['name' => 'host_travelers']);
         Permission::firstOrCreate(['name' => 'book_travel']);
+        Permission::firstOrCreate(['name' => 'admin_panel']);
     }
 }

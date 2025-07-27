@@ -54,7 +54,7 @@ const AppContent = () => {
           path="/community"
           element={
             <ProtectedRoute>
-              {user?.isAdmin ? <AdminPanel /> : <CommunityPage />}
+              {user?.role === "admin" ? <AdminPanel /> : <CommunityPage />}
             </ProtectedRoute>
           }
         />

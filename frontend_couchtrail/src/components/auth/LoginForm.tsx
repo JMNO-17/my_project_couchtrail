@@ -46,7 +46,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
       } else {
         toast({
           title: "Login failed",
-          description: "Invalid email or password. Try: admin@travel.com / john@travel.com with password 'password'",
+          description: "Invalid email or password.",
           variant: "destructive",
         });
       }
