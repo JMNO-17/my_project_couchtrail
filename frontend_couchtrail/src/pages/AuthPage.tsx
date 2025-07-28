@@ -29,7 +29,7 @@ export const AuthPage: React.FC = () => {
       {/* Left side - Hero Image */}
       <div className="hidden lg:flex lg:w-1/2 relative">
         <img
-          src="./public/hero-travel.jpg"
+          src="./public/img2.jpg"
           alt="Travel Community"
           className="w-full h-full object-cover"
         />

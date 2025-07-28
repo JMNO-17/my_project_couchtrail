@@ -8,6 +8,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Traveler;
 
 class AuthController extends Controller
 {
@@ -15,29 +16,45 @@ class AuthController extends Controller
      * Register new user and assign role
      */
 
-    public function register(Request $request)
-    {
-        $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|string|email|unique:users',
-            'password' => 'required|string|min:6',
-        ]);
+   public function register(Request $request)
+{
+    $request->validate([
+        'name'     => 'required|string|max:255',
+        'email'    => 'required|string|email|unique:users',
+        'password' => 'required|string|min:6',
+    ]);
 
-        $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => bcrypt($request->password),
-        ]);
+    $user = User::create([
+        'name'     => $request->name,
+        'email'    => $request->email,
+        'password' => bcrypt($request->password),
+    ]);
 
-        $user->assignRole($request->role);
+    $user->assignRole($request->role);
 
-        $token = JWTAuth::fromUser($user);
+    // ✅ Create Traveler record by default
+    Traveler::create([
+        'user_id' => $user->id,
+        'name' => $user->name,
+        'location' => '',
+        'avatar' => '',
+        'bio' => '',
+        'trip_count' => 0,
+        'is_verified' => false,
+    ]);
 
-        return response()->json([
-            'user'  => $user,
-            'token' => $token
-        ]);
-    }
+    $token = JWTAuth::fromUser($user);
+
+    return response()->json([
+        'user'  => $user,
+        'token' => $token
+    ]);
+}
+
+
+
+
+
 
     /**
      * Login user and return JWT token
@@ -47,7 +64,7 @@ class AuthController extends Controller
 
         $credentials = $request->only('email', 'password');
 
-        $user = User::where('email',$credentials['email'])->first();
+        $user = User::where('email', $credentials['email'])->first();
 
         if (!$token = JWTAuth::attempt($credentials)) {
             return response()->json(['error' => 'Invalid credentials'], 401);
@@ -92,16 +109,16 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         try {
-            $user = User::where('id',Auth::user()->id)->first();
+            $user = User::where('id', Auth::user()->id)->first();
 
-             $roleName = $user->getRoleNames()->first();  // returns the first role name as a string
+            $roleName = $user->getRoleNames()->first();  // returns the first role name as a string
 
-             $user = [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => $roleName,
-        ];
+            $user = [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $roleName,
+            ];
 
             if (!$user) {
                 return response()->json(['error' => 'Unauthenticated.'], 401);

@@ -122,6 +122,9 @@ const AppContent = () => {
           }
         />
 
+        <Route path="/profile/:hostId" element={<ProfilePage />} />
+
+
         {/* Catch-all 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>

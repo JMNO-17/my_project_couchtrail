@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/auth/AuthContext';
 import { useDemo } from '@/hooks/useDemo';
@@ -11,6 +11,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, Mail, MapPin, Calendar, Star, Home, MessageCircle, Edit, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
+import API from "@/api/index"
+import { Skeleton } from '@/components/ui/skeleton';
+
+type HostingInfo = {
+  details: ReactNode;
+  is_available: ReactNode;
+  id: number;
+  host_id: number;
+  address: string;
+  home_description: string;
+  max_guests: number;
+  amenities: string;
+  additional_details: string;
+ 
+};
 
 export const ProfilePage = () => {
   const navigate = useNavigate();
@@ -22,15 +37,18 @@ export const ProfilePage = () => {
     region: user?.region || ''
   });
 
+  const [hostData, setHostData] = useState<HostingInfo | null>(null)
 
-  
+  const [isLoading, setIsLoading] = useState(false)
+
+  // const [isLoading, setIsLoading]
   if (!user) return null;
 
   const reviews = getEnrichedReviews().filter(r => r.reviewed_id === user.id);
   const hostings = getEnrichedHostings().filter(h => h.user_id === user.id);
   const requests = getEnrichedHostingRequests().filter(r => r.traveler_id === user.id || r.host_id === user.id);
 
-  const averageRating = reviews.length > 0 
+  const averageRating = reviews.length > 0
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : 0;
 
@@ -44,15 +62,30 @@ export const ProfilePage = () => {
       {[1, 2, 3, 4, 5].map((star) => (
         <Star
           key={star}
-          className={`h-4 w-4 ${
-            star <= rating 
-              ? 'fill-yellow-400 text-yellow-400' 
-              : 'text-muted-foreground'
-          }`}
+          className={`h-4 w-4 ${star <= rating
+            ? 'fill-yellow-400 text-yellow-400'
+            : 'text-muted-foreground'
+            }`}
         />
       ))}
     </div>
   );
+
+  useEffect(() => {
+    const fetchHostingInfo = async () => {
+      try {
+        setIsLoading(true)
+        const response = await API.get<HostingInfo[]>('/hosting-listings').finally(() => setIsLoading(false))
+        setHostData(response.data[0] ?? null);
+      } catch (err) {
+        console.log(err)
+      }
+    };
+
+    fetchHostingInfo();
+  }, []);
+
+  console.log(hostData, "dddd")
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 p-4">
@@ -72,8 +105,8 @@ export const ProfilePage = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Profile Info</CardTitle>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => setIsEditing(!isEditing)}
                 >
@@ -89,7 +122,7 @@ export const ProfilePage = () => {
                     {user.name.slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                
+
                 {isEditing ? (
                   <div className="space-y-3">
                     <Input
@@ -152,23 +185,101 @@ export const ProfilePage = () => {
           </Card>
 
           {/* Become a Host Card */}
-          <Card className="shadow-travel">
-            <CardContent className="text-center py-8 h-full flex flex-col justify-center">
-              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/20 mx-auto mb-4">
-                <Home className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Become a Host</h3>
-              <p className="text-muted-foreground mb-4">
-                Share your space and connect with travelers from around the world
-              </p>
-              <Button 
-                // className="bg-gradient-hero"
-                onClick={() => navigate('/hosting')}
-              >
-                Start Hosting
-              </Button>
-            </CardContent>
-          </Card>
+          {
+            isLoading ? (
+              <Card className="shadow-travel">
+                <CardContent className="text-center py-8 h-full flex flex-col justify-center items-center">
+                  <Skeleton className="w-16 h-16 rounded-full mb-4" />
+                  <Skeleton className="w-48 h-6 mb-2" />
+                  <Skeleton className="w-64 h-4 mb-4" />
+                  <Skeleton className="w-32 h-10" />
+                </CardContent>
+              </Card>
+            ) : hostData ? (
+              <Card className="shadow-travel">
+                <CardContent className="py-10 px-6 flex flex-col items-center space-y-6 text-center">
+                  {/* Icon */}
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Home className="w-8 h-8 text-primary" />
+                  </div>
+
+                  {/* Hosting Info Section */}
+                  <div className="w-full max-w-md space-y-4 text-left">
+                    <div className="border-b pb-2">
+                      <p className="text-sm text-muted-foreground">Address</p>
+                      <h3 className="text-lg font-semibold text-foreground">{hostData.address}</h3>
+                    </div>
+
+                    <div className="border-b pb-2">
+                      <p className="text-sm text-muted-foreground">Home Description</p>
+                      <h3 className="text-lg font-medium">{hostData.home_description}</h3>
+                    </div>
+
+                    <div className="border-b pb-2">
+                      <p className="text-sm text-muted-foreground">Additional Details</p>
+                      <h3 className="text-lg font-medium">{hostData.details}</h3>
+                    </div>
+
+                    <div className="flex justify-between gap-4 border-b pb-2">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Max Guests</p>
+                        <h3 className="text-lg font-medium">{hostData.max_guests}</h3>
+                      </div>
+
+                      <div className="flex justify-between gap-4 border-b pb-2">
+
+                        <div className="flex flex-col items-start">
+                          <p className="text-sm text-muted-foreground mb-1">is_available</p>
+                          {hostData.is_available === true || hostData.is_available === "true" || hostData.is_available === "active" ? (
+                            <button
+                              disabled
+                              className="px-3 py-1 text-sm font-medium text-green-700 bg-green-100 rounded-full cursor-default"
+                            >
+                              Active
+                            </button>
+                          ) : (
+                            <button
+                              disabled
+                              className="px-3 py-1 text-sm font-medium text-red-700 bg-red-100 rounded-full cursor-default"
+                            >
+                              Inactive
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                    </div>
+
+                    <div className="border-b pb-2">
+                      <p className="text-sm text-muted-foreground">Amenities</p>
+                      <h3 className="text-lg font-medium">{hostData.amenities}</h3>
+                    </div>
+                  </div>
+
+                  {/* Footer Message */}
+                  <p className="text-sm text-muted-foreground">
+                    Share your space and connect with travelers from around the world.
+                  </p>
+                </CardContent>
+              </Card>
+
+            ) : (
+              <Card className="shadow-travel">
+                <CardContent className="text-center py-8 h-full flex flex-col justify-center">
+                  <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/20 mx-auto mb-4">
+                    <Home className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Become a Host</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Share your space and connect with travelers from around the world
+                  </p>
+                  <Button onClick={() => navigate('/hosting')}>Start Hosting</Button>
+                </CardContent>
+              </Card>
+            )
+          }
+
+
 
         </div>
 
