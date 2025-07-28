@@ -26,9 +26,9 @@ class HostingListing extends Model
         'is_available' => 'boolean',
     ];
 
-    // ✅ Relationship with User
     public function host()
-    {
-        return $this->belongsTo(User::class, 'host_id');
-    }
+{
+    return $this->belongsTo(Host::class, 'host_id');
+}
+
 }

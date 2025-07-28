@@ -48,6 +48,7 @@ class HostingListingController extends Controller
             'max_guests' => 'required|integer',
             'amenities' => 'required|string',
             'additional_details' => 'nullable|string',
+            'is_available' => 'required|boolean',
         ]);
 
         $listing = HostingListing::create([
@@ -57,6 +58,7 @@ class HostingListingController extends Controller
             'max_guests' => $request->max_guests,
             'amenities' => $request->amenities,
             'additional_details' => $request->additional_details,
+            'is_available' => $request->is_available,
         ]);
 
         return response()->json($listing, 201);
