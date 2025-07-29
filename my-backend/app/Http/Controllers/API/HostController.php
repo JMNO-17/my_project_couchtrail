@@ -14,7 +14,7 @@ class HostController extends Controller
 
   public function index()
 {
-    $hosts = Host::with('user')->get();
+    $hosts = HostingListing::with('user')->get();
 
     // Transform to add user.name and user.avatar to each host
     $transformedHosts = $hosts->map(function ($host) {
@@ -27,7 +27,7 @@ class HostController extends Controller
             'rating' => $host->rating,
             'review_count' => $host->review_count,
             'description' => $host->description,
-            'amenities' => $host->amenities,
+           'amenities' => array_map('trim', explode(',', $host->amenities)),
             'is_verified' => $host->is_verified,
             'response_time' => $host->response_time,
         ];

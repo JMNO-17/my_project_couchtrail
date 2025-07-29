@@ -53,7 +53,12 @@ class User extends Authenticatable implements JWTSubject
 
     public function listings()
 {
-    return $this->hasMany(HostingListing::class, 'host_id');
+    return $this->belongsTo(HostingListing::class, 'host_id');
 }
+
+   public function traveller()
+    {
+        return $this->belongsTo(Traveler::class);
+    }
 
 }

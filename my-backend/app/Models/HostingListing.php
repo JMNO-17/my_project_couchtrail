@@ -11,8 +11,8 @@ class HostingListing extends Model
 
     protected $table = 'hosting_listings';
 
-    // ✅ Corrected: replaced 'host_name' with 'host_id'
     protected $fillable = [
+        'user_id',
         'host_id',
         'address',
         'home_description',
@@ -29,6 +29,11 @@ class HostingListing extends Model
     public function host()
 {
     return $this->belongsTo(Host::class, 'host_id');
+}
+
+ public function user()
+{
+    return $this->belongsTo(\App\Models\User::class);
 }
 
 }
