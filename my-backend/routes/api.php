@@ -47,14 +47,4 @@ Route::group(['middleware' => 'auth:api'], function () {
 
     Route::get('/me/type', [UserRoleController::class, 'check']);
 
-    Route::middleware('auth:api')->post('/host', [HostController::class, 'store']);
-    Route::get('/me/role', function () {
-        $user = auth()->guard('api')->user();
-        $isHost = \App\Models\Host::where('user_id', $user->id)->exists();
-
-        return response()->json([
-            'role' => $isHost ? 'host' : 'traveler',
-            'user' => $user
-        ]);
-    });
 });

@@ -53,6 +53,7 @@ class HostingListingController extends Controller
 
         $listing = HostingListing::create([
             'host_id' => $userId,
+            'user_id' => $userId,
             'address' => $request->address,
             'home_description' => $request->home_description,
             'max_guests' => $request->max_guests,
