@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+// src/pages/HostingPage.tsx
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,6 +32,7 @@ export const HostingPage = () => {
     amenities: [] as string[],
     maxGuests: '1',
     is_available: '',
+    images: [] as File[],
   });
 
   const amenityOptions = [
@@ -50,6 +52,15 @@ export const HostingPage = () => {
     }));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFormData((prev) => ({
+        ...prev,
+        images: Array.from(e.target.files),
+      }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -63,13 +74,20 @@ export const HostingPage = () => {
     }
 
     try {
-      await API.post('/hosting-listings', {
-        address: formData.address,
-        home_description: formData.homeDescription,
-        max_guests: parseInt(formData.maxGuests),
-        amenities: formData.amenities.join(','),
-        additional_details: formData.details,
-        is_available: formData.is_available,
+      const data = new FormData();
+      data.append('address', formData.address);
+      data.append('home_description', formData.homeDescription);
+      data.append('max_guests', formData.maxGuests);
+      data.append('amenities', formData.amenities.join(','));
+      data.append('additional_details', formData.details);
+      data.append('is_available', formData.is_available);
+
+      formData.images.forEach((file) => {
+        data.append('images[]', file);
+      });
+
+      await API.post('/hosting-listings', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       toast({
@@ -78,8 +96,8 @@ export const HostingPage = () => {
       });
 
       navigate('/profile');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      console.error(error);
       toast({
         title: 'Error',
         description: error?.response?.data?.error || 'Something went wrong',
@@ -87,8 +105,6 @@ export const HostingPage = () => {
       });
     }
   };
-
-  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 p-4">
@@ -153,6 +169,28 @@ export const HostingPage = () => {
                   className="mt-1"
                 />
               </div>
+
+              <div>
+                <Label htmlFor="images">Upload Images of Location</Label>
+                <Input
+                  id="images"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="mt-1"
+                />
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {formData.images.map((file, idx) => (
+                    <img
+                      key={idx}
+                      src={URL.createObjectURL(file)}
+                      alt="preview"
+                      className="w-24 h-24 object-cover rounded-md border"
+                    />
+                  ))}
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -211,7 +249,7 @@ export const HostingPage = () => {
                 <Label htmlFor="is_available">is_available</Label>
                 <Input
                   id="is_available"
-                  placeholder="When are you available to host? (e.g., Weekends, Summer months)"
+                  placeholder="Are you available to host? Write 1 or 0."
                   value={formData.is_available}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, is_available: e.target.value }))

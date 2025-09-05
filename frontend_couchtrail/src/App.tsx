@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/components/auth/AuthContext";
 import { Navbar } from "@/components/navigation/Navbar";
 
+// Pages
 import Index from "./pages/Index";
 import { AuthPage } from "./pages/AuthPage";
 import { CommunityPage } from "./pages/CommunityPage";
@@ -15,46 +16,48 @@ import { RequestsPage } from "./pages/RequestsPage";
 import { ReviewsPage } from "./pages/ReviewsPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { UserProfilePage } from "./pages/UserProfilePage";
+import { HostingPage } from "./pages/HostingPage";
 import { AdminPanel } from "@/components/admin/AdminPanel";
 import NotFound from "./pages/NotFound";
-import { HostingPage } from "./pages/HostingPage";
 
-const ProtectedRoute = ({
-  children,
-  adminOnly = false,
-}: {
+type ProtectedProps = {
   children: React.ReactNode;
   adminOnly?: boolean;
-}) => {
+};
+
+const ProtectedRoute = ({ children, adminOnly = false }: ProtectedProps) => {
   const { user } = useAuth();
 
-  if (!user) {
-    return <AuthPage />;
-  }
+  // Not logged in → go to /auth
+  if (!user) return <Navigate to="/auth" replace />;
 
-  if (adminOnly && !user.isAdmin) {
-    return <NotFound />;
-  }
+  // Normalize admin check: allow either role === "admin" or bool flag isAdmin
+  const isAdmin = user.role === "admin" || user.isAdmin === true;
+
+  if (adminOnly && !isAdmin) return <NotFound />;
 
   return <>{children}</>;
 };
 
-const AppContent = () => {
+const AppContent: React.FC = () => {
   const { user } = useAuth();
 
   return (
     <>
+      {/* Show navbar only when logged in */}
       {user && <Navbar />}
+
       <Routes>
+        {/* Public */}
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<AuthPage />} />
 
-        {/* Show AdminPanel if admin, CommunityPage otherwise */}
+        {/* Protected */}
         <Route
           path="/community"
           element={
             <ProtectedRoute>
-              {user?.role === "admin" ? <AdminPanel /> : <CommunityPage />}
+              <CommunityPage />
             </ProtectedRoute>
           }
         />
@@ -95,6 +98,7 @@ const AppContent = () => {
           }
         />
 
+        {/* Own profile */}
         <Route
           path="/profile"
           element={
@@ -104,6 +108,7 @@ const AppContent = () => {
           }
         />
 
+        {/* Other user's profile (from CommunityPage) */}
         <Route
           path="/profile/:userId"
           element={
@@ -113,6 +118,7 @@ const AppContent = () => {
           }
         />
 
+        {/* Admin panel */}
         <Route
           path="/admin"
           element={
@@ -122,10 +128,7 @@ const AppContent = () => {
           }
         />
 
-        <Route path="/profile/:hostId" element={<ProfilePage />} />
-
-
-        {/* Catch-all 404 */}
+        {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>

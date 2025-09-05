@@ -2,81 +2,128 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import API from '@/api';
 
 export interface User {
-  isHost: boolean;
   id: number;
   name: string;
   email: string;
   avatar?: string;
-  isAdmin: boolean;
-  region?: string;
+
   role: 'user' | 'admin';
+  isAdmin: boolean;
+  isHost: boolean;
+
+  region?: string;
   created_at: string;
 }
 
 interface AuthContextType {
   user: User | null;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<User | null>;
-  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
+  return ctx;
 };
 
+// --- helpers ---------------------------------------------------------------
+
+const ACCESS_TOKEN_KEY = 'accessToken';
+const USER_KEY = 'user';
+
+function setAuthHeader(token?: string | null) {
+  if (token) {
+    API.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete API.defaults.headers.common['Authorization'];
+  }
+}
+
+function readStoredUser(): User | null {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+  }
+}
+
+function storeAuth(token: string, user: User) {
+  localStorage.setItem(ACCESS_TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  setAuthHeader(token);
+}
+
+function clearAuth() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  setAuthHeader(null);
+}
+
+// --- provider --------------------------------------------------------------
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(readStoredUser());
   const [isLoading, setIsLoading] = useState(true);
 
+  // on boot: set header from token and fetch /me to verify
   useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+    setAuthHeader(token);
+
+    const bootstrap = async () => {
+      // If no token, stop loading (public routes can render)
       if (!token) {
         setIsLoading(false);
         return;
       }
 
-      console.log(token, "DDDDD")
-
       try {
         const res = await API.get('/me');
-        setUser(res.data);
+        const maybeUser: User = res.data?.user ?? res.data; // support both shapes
+        if (maybeUser && maybeUser.id) {
+          setUser(maybeUser);
+          // keep storage user in sync if needed
+          localStorage.setItem(USER_KEY, JSON.stringify(maybeUser));
+        } else {
+          // invalid payload → clear
+          clearAuth();
+          setUser(null);
+        }
       } catch {
-        localStorage.removeItem('accessToken');
+        clearAuth();
         setUser(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchUser();
+    bootstrap();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
       const res = await API.post('/login', { email, password });
-      const token = res.data.token;
-      const user = res.data.user;
 
-      console.log(user, "USSS")
+      // support { token, user } or { access_token, user }
+      const token: string =
+        res.data?.token ?? res.data?.access_token ?? localStorage.getItem(ACCESS_TOKEN_KEY) ?? '';
 
-      if(res.status === 200){
-  localStorage.setItem('accessToken', token);
-    localStorage.setItem('user', JSON.stringify(user));
+      const nextUser: User = res.data?.user ?? res.data?.data ?? res.data;
 
-      }
+      if (!token || !nextUser?.id) throw new Error('Invalid login response');
 
-    
-      setUser(user);
+      storeAuth(token, nextUser);
+      setUser(nextUser);
       return true;
-    } catch {
+    } catch (e) {
       return false;
     } finally {
       setIsLoading(false);
@@ -87,11 +134,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const res = await API.post('/register', { name, email, password });
-      const token = res.data.token;
-      const user = res.data.user;
+      const token: string = res.data?.token ?? res.data?.access_token ?? '';
+      const nextUser: User = res.data?.user ?? res.data?.data ?? res.data;
 
-      localStorage.setItem('accessToken', token);
-      setUser(user);
+      if (!token || !nextUser?.id) throw new Error('Invalid register response');
+
+      storeAuth(token, nextUser);
+      setUser(nextUser);
       return true;
     } catch {
       return false;
@@ -101,37 +150,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-  try {
-    // Optional: call Laravel API to revoke token if supported
-    await API.post('/logout');
-  } catch (error) {
-    // Ignore error if logout endpoint isn't implemented
-    console.warn('Logout request failed on backend (possibly not implemented).');
-  } finally {
-    // Always clear local storage and auth state
-    localStorage.removeItem('accessToken');
-    setUser(null);
-
-    // Optional: clear all user-related localStorage if used
-    localStorage.removeItem('userHostingProfile');
-
-    // Redirect to login or homepage
-    window.location.href = '/auth';
-  }
-};
+    try {
+      await API.post('/logout'); // ok if backend doesn’t implement
+    } catch {
+      // ignore
+    } finally {
+      clearAuth();
+      setUser(null);
+      // keep your current redirect behavior
+      window.location.href = '/auth';
+    }
+  };
 
   const updateProfile = async (data: Partial<User>): Promise<User | null> => {
     try {
       const res = await API.patch('/profile', data);
-      setUser(res.data);
-      return res.data;
+      const updated: User = res.data?.user ?? res.data;
+
+      if (updated && updated.id) {
+        setUser(updated);
+        localStorage.setItem(USER_KEY, JSON.stringify(updated));
+        return updated;
+      }
+      return null;
     } catch {
       return null;
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateProfile, isLoading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        login,
+        register,
+        logout,
+        updateProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

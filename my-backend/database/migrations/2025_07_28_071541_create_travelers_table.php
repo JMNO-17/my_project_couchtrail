@@ -13,7 +13,7 @@ return new class extends Migration {
     $table->string('location')->nullable();
     $table->string('avatar')->nullable();
     $table->text('bio')->nullable();
-    $table->integer('trip_count')->default(0);
+    // $table->integer('trip_count')->default(0);
     $table->boolean('is_verified')->default(false);
     $table->timestamps();
 });

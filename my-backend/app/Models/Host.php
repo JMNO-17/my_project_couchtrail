@@ -32,10 +32,12 @@ class Host extends Model
         'is_available' => 'boolean'
     ];
 
-    public function user()
+   // Host.php (model)
+public function user()
 {
-    return $this->belongsTo(\App\Models\User::class);
+    return $this->belongsTo(User::class);
 }
+
 
 
     public function listings()

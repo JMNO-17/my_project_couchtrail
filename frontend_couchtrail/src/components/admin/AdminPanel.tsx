@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -25,6 +25,7 @@ import {
   AvatarFallback,
   AvatarImage
 } from '@radix-ui/react-avatar';
+import API from '@/api';
 
 interface User {
   id: number;
@@ -46,53 +47,25 @@ interface Review {
 }
 
 export const AdminPanel: React.FC = () => {
-  const [users] = useState<User[]>([
-    {
-      id: 1,
-      name: 'John Traveler',
-      email: 'john@travel.com',
-      role: 'user',
-      region: 'Europe',
-      isActive: true
-    },
-    {
-      id: 2,
-      name: 'Sarah Host',
-      email: 'sarah@travel.com',
-      role: 'user',
-      region: 'Asia',
-      isActive: true
-    },
-    {
-      id: 3,
-      name: 'Mike Explorer',
-      email: 'mike@travel.com',
-      role: 'user',
-      region: 'Americas',
-      isActive: false
-    }
-  ]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
 
-  const [reviews] = useState<Review[]>([
-    {
-      id: 1,
-      reviewerName: 'John Traveler',
-      reviewedName: 'Sarah Host',
-      type: 'host',
-      rating: 5,
-      isFlagged: false,
-      comment: 'Amazing host, very welcoming!'
-    },
-    {
-      id: 2,
-      reviewerName: 'Mike Explorer',
-      reviewedName: 'Anna Local',
-      type: 'host',
-      rating: 2,
-      isFlagged: true,
-      comment: 'Not what was expected...'
-    }
-  ]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [usersRes, reviewsRes] = await Promise.all([
+          API.get('/users'),
+          API.get('/reviews')
+        ]);
+        setUsers(usersRes.data);
+        setReviews(reviewsRes.data);
+      } catch (error) {
+        console.error('Error fetching admin data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const stats = {
     totalUsers: users.length,
@@ -102,13 +75,11 @@ export const AdminPanel: React.FC = () => {
 
   return (
     <div className="p-8 space-y-10 max-w-7xl mx-auto">
-      {/* Header */}
       <div className="bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl p-8 text-white shadow-md">
         <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
         <p className="text-lg">Monitor and manage users and reviews efficiently</p>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="shadow-sm">
           <CardHeader className="flex items-center justify-between pb-2">
@@ -144,7 +115,6 @@ export const AdminPanel: React.FC = () => {
         </Card>
       </div>
 
-      {/* Tabs */}
       <Tabs defaultValue="users" className="w-full">
         <TabsList className="grid grid-cols-2 gap-2">
           <TabsTrigger value="users">Users</TabsTrigger>
@@ -161,9 +131,9 @@ export const AdminPanel: React.FC = () => {
               {users.map((user) => (
                 <div
                   key={user.id}
-                  className="flex justify-between items-center p-4 border rounded-xl bg-muted hover:bg-muted/50 transition"
+                  className="flex justify-between items-center p-4 border rounded-xl bg-muted hover:bg-muted/50 transition flex-wrap"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 mb-2 sm:mb-0">
                     <Avatar>
                       <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} />
                       <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
@@ -174,12 +144,45 @@ export const AdminPanel: React.FC = () => {
                       {user.region && <Badge variant="outline" className="mt-1">{user.region}</Badge>}
                     </div>
                   </div>
-                  <div className="flex gap-2 items-center">
-                    <Badge className={user.isActive ? 'bg-green-500' : 'bg-gray-300'}>
+
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <Button
+                      size="sm"
+                      className={user.isActive ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-black'}
+                      onClick={async () => {
+                        try {
+                          const res = await API.patch(`/users/${user.id}/toggle-active`);
+                          setUsers(prev =>
+                            prev.map(u => u.id === user.id ? res.data : u)
+                          );
+                        } catch (err) {
+                          console.error('Toggle active failed:', err);
+                          alert('Failed to toggle user status.');
+                        }
+                      }}
+                    >
                       {user.isActive ? 'Active' : 'Inactive'}
-                    </Badge>
+                    </Button>
+
                     <Badge variant={user.role === 'admin' ? 'default' : 'outline'}>{user.role}</Badge>
-                    <Button variant="outline" size="sm">Manage</Button>
+
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={async () => {
+                        if (confirm(`Are you sure to remove ${user.name}?`)) {
+                          try {
+                            await API.delete(`/users/${user.id}`);
+                            setUsers(prev => prev.filter(u => u.id !== user.id));
+                          } catch (err) {
+                            console.error('Delete failed:', err);
+                            alert('Failed to delete user.');
+                          }
+                        }
+                      }}
+                    >
+                      Remove
+                    </Button>
                   </div>
                 </div>
               ))}

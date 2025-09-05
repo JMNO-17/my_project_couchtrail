@@ -5,6 +5,8 @@ namespace App\Http\Controllers\API;
 use Illuminate\Http\Request;
 use App\Models\HostingListing;
 use App\Http\Controllers\Controller;
+use App\Models\Host;
+
 
 class HostingListingController extends Controller
 {
@@ -13,12 +15,10 @@ class HostingListingController extends Controller
     {
         $userId = auth()->guard('api')->id();
 
-        // You can uncomment below for debugging:
-        // return response()->json(HostingListing::all());
-
         $listings = HostingListing::where('host_id', $userId)->get();
         return response()->json($listings);
     }
+
 
     // GET /api/hosting-listings/{id}
     public function show($id)
@@ -32,6 +32,8 @@ class HostingListingController extends Controller
 
         return response()->json($listing);
     }
+
+
 
     // POST /api/hosting-listings
     public function store(Request $request)

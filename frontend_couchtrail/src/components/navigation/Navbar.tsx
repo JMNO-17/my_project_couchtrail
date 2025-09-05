@@ -50,14 +50,14 @@ export const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          {/* <Link to="/" className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-glow rounded-lg flex items-center justify-center">
               <Home className="w-4 h-4 text-primary-foreground" />
-            </div> */}
+            </div>
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-              CouchTrail
+              CouchTrail 
             </span>
-          {/* </Link> */}
+          </Link>
 
           
 

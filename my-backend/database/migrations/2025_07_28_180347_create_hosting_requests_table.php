@@ -11,7 +11,7 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('traveler_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('host_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('host_entry_id')->constrained('hosts')->onDelete('cascade'); // ✅ New
+            $table->foreignId('host_entry_id')->constrained('hosts')->onDelete('cascade'); 
             $table->string('location');
             $table->date('date');
             $table->text('message');

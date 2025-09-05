@@ -9,10 +9,14 @@ use App\Http\Controllers\API\HostingRequestController;
 use App\Http\Controllers\API\HostController;
 use App\Http\Controllers\API\TravelerController;
 use App\Http\Controllers\API\UserRoleController;
+use App\Http\Controllers\API\UserController;
+use App\Http\Controllers\API\ReviewController;
+
 
 // Registration and Login routes
 Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
+
 
 // Protected routes (requires JWT token)
 Route::group(['middleware' => 'auth:api'], function () {
@@ -34,11 +38,9 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::patch('/hosting-requests/{hostingRequest}/status', [HostingRequestController::class, 'updateStatus']);
 
 
-
     Route::get('/hosts', [HostController::class, 'index']);
     Route::get('/hosts/{id}', [HostController::class, 'show']); // id = user_id
     Route::post('/hosts', [HostController::class, 'store']);
-
 
 
     Route::get('/travelers', [TravelerController::class, 'index']);
@@ -47,4 +49,12 @@ Route::group(['middleware' => 'auth:api'], function () {
 
     Route::get('/me/type', [UserRoleController::class, 'check']);
 
+
+
+
+    Route::get('/users', [UserController::class, 'index']);
+    Route::patch('/users/{id}/toggle-active', [UserController::class, 'toggleActive']);
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
+    Route::get('/reviews', [ReviewController::class, 'index']);
 });
