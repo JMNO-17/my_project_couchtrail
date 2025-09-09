@@ -23,10 +23,11 @@ class Traveler extends Model
         'is_verified' => 'boolean',
     ];
 
+    /**
+     * Traveler belongs to a user
+     */
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(\App\Models\User::class, 'user_id');
     }
-
-    
 }

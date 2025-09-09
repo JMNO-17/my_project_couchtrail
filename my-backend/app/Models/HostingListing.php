@@ -26,14 +26,27 @@ class HostingListing extends Model
         'is_available' => 'boolean',
     ];
 
+    /**
+     * HostingListing belongs to a Host
+     */
     public function host()
-{
-    return $this->belongsTo(Host::class, 'host_id');
-}
+    {
+        return $this->belongsTo(Host::class, 'host_id');
+    }
 
- public function user()
-{
-    return $this->belongsTo(\App\Models\User::class);
-}
+    /**
+     * HostingListing belongs to a User
+     */
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class);
+    }
 
+    /**
+     * HostingListing has many images
+     */
+    public function images()
+    {
+        return $this->hasMany(HostingImage::class, 'hosting_listing_id');
+    }
 }

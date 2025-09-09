@@ -1,0 +1,24 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class HostingImage extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'hosting_listing_id',
+        'path',
+    ];
+
+    /**
+     * Relation to HostingListing
+     */
+    public function listing()
+    {
+        return $this->belongsTo(HostingListing::class, 'hosting_listing_id');
+    }
+}

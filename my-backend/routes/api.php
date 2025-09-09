@@ -51,6 +51,7 @@ Route::group(['middleware' => 'auth:api'], function () {
 
 
 
+    Route::get('/users/{id}', [UserController::class, 'show']);
 
     Route::get('/users', [UserController::class, 'index']);
     Route::patch('/users/{id}/toggle-active', [UserController::class, 'toggleActive']);

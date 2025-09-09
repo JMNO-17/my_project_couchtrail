@@ -17,7 +17,9 @@ class UserController extends Controller
     // GET /api/users/{id}
    public function show($id)
     {
-        $user = User::select('id', 'name', 'email', 'avatar', 'role', 'created_at')->find($id);
+        // $user = User::select('id', 'name', 'email', 'avatar', 'role', 'created_at')->find($id);
+        $user = User::find($id);
+
         if (!$user) {
             return response()->json(['message' => 'User not found'], 404);
         }

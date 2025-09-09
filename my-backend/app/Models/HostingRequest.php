@@ -20,27 +20,32 @@ class HostingRequest extends Model
         'is_suspicious',
     ];
 
+    protected $casts = [
+        'is_suspicious' => 'boolean',
+        'date' => 'date',
+    ];
+
     /**
-     * Get the traveler (user who made the request).
+     * The traveler (user who made the request)
      */
     public function traveler()
     {
-        return $this->belongsTo(User::class, 'traveler_id');
+        return $this->belongsTo(\App\Models\User::class, 'traveler_id');
     }
 
     /**
-     * Get the host (user receiving the request).
+     * The host (user receiving the request)
      */
     public function host()
     {
-        return $this->belongsTo(User::class, 'host_id');
+        return $this->belongsTo(\App\Models\User::class, 'host_id');
     }
 
     /**
-     * Get the host entry details from hosts table.
+     * The host entry details from hosts table
      */
     public function hostEntry()
     {
-        return $this->belongsTo(Host::class, 'host_entry_id');
+        return $this->belongsTo(\App\Models\Host::class, 'host_entry_id');
     }
 }

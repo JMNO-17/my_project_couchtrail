@@ -8,24 +8,24 @@ return new class extends Migration
 {
     public function up(): void
     {
-
-    Schema::table('hosts', function (Blueprint $table) {
-        if (!Schema::hasColumn('hosts', 'user_id')) {
-            $table->foreignId('user_id')
-                ->after('id')
-                ->constrained('users')
-                ->onDelete('cascade');
-        }
-     });
-
+        Schema::table('hosts', function (Blueprint $table) {
+            // Add user_id only if it doesn't exist
+            if (!Schema::hasColumn('hosts', 'user_id')) {
+                $table->foreignId('user_id')
+                      ->constrained('users')
+                      ->onDelete('cascade')
+                      ->after('id');
+            }
+        });
     }
-
 
     public function down(): void
     {
         Schema::table('hosts', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-            $table->dropColumn('user_id');
+            if (Schema::hasColumn('hosts', 'user_id')) {
+                $table->dropForeign(['user_id']);
+                $table->dropColumn('user_id');
+            }
         });
     }
 };

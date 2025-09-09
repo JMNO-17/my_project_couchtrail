@@ -4,18 +4,16 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Factories\HasFactory; // ✅ Add this
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements JWTSubject
 {
-    use HasFactory; // ✅ Enable factory support
-    use Notifiable;
-    use HasRoles;
+    use HasFactory, Notifiable, HasRoles;
 
     /**
-     * The attributes that are mass assignable.
+     * Mass assignable attributes
      */
     protected $fillable = [
         'name',
@@ -24,19 +22,18 @@ class User extends Authenticatable implements JWTSubject
     ];
 
     /**
-     * Hide these fields in JSON output.
+     * Hidden attributes for JSON
      */
     protected $hidden = [
+        'password',
+        'remember_token',
         'created_at',
         'updated_at',
         'email_verified_at',
-
-        'password',
-        'remember_token',
     ];
 
     /**
-     * JWT - Return identifier.
+     * JWT identifier
      */
     public function getJWTIdentifier()
     {
@@ -44,21 +41,26 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
-     * JWT - Return custom claims.
+     * JWT custom claims
      */
     public function getJWTCustomClaims()
     {
         return [];
     }
 
+    /**
+     * User has many hosting listings (as host)
+     */
     public function listings()
-{
-    return $this->belongsTo(HostingListing::class, 'host_id');
-}
-
-   public function traveller()
     {
-        return $this->belongsTo(Traveler::class);
+        return $this->hasMany(HostingListing::class, 'host_id');
     }
 
+    /**
+     * User has one traveler profile
+     */
+    public function traveler()
+    {
+        return $this->hasOne(Traveler::class, 'user_id');
+    }
 }
