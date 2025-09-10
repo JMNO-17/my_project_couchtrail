@@ -43,6 +43,13 @@ class HostController extends Controller
     return response()->json($transformedHosts);
 }
 
+    public function show($id) {
+        $host = Host::find($id);
+
+        dd($host);
+        return response()->json([$host, 200]);
+    }
+
 
   public function store(Request $request)
 {

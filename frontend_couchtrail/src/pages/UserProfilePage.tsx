@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin, Star, Calendar, MessageCircle, Home, User, ArrowLeft, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 import API from '@/api';
 
 interface UserProfilePageProps {
@@ -20,6 +19,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
   const params = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  
   const { toast } = useToast();
 
   const userId = passedUserId ?? Number(params.userId);
@@ -28,7 +28,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
   const [hostInfo, setHostInfo] = useState(null);
   const [travelerInfo, setTravelerInfo] = useState(null);
   const [reviews, setReviews] = useState([]);
-  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [showRequestForm, setShowRequestForm] = useState(true);
   const [requestData, setRequestData] = useState({ location: '', message: '', date: '' });
 
   const isSelf = user?.id === Number(userId);
@@ -40,7 +40,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
       try {
         const [userRes, hostRes, travelerRes, reviewRes] = await Promise.all([
           API.get(`/users/${userId}`),
-          API.get(`/hosts`, { params: { user_id: userId } }),
+          API.get(`/hosting-listings`, { params: { user_id: userId } }),
           API.get(`/travelers`, { params: { user_id: userId } }),
           API.get(`/reviews`, { params: { reviewed_id: userId } })
         ]);
@@ -57,6 +57,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
     fetchAllData();
   }, [userId]);
 
+  console.log(userInfo)
+
   if (!userInfo) {
     return (
       <div className="min-h-screen p-4 flex items-center justify-center">
@@ -72,10 +74,11 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
   }
 
   const isHost = !!hostInfo;
+
+  console.log(hostInfo)
   const isTraveler = !!travelerInfo;
   const canSendRequest = !isSelf && user?.role === 'user' && isTraveler;
   const averageRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
-
   const handleSendRequest = async () => {
     if (!requestData.location || !requestData.message || !requestData.date) {
       toast({
@@ -114,6 +117,23 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
     }
   };
 
+  // const profileUser = user.find(u => u.id === parseInt(userId || '0'));
+  // if (!profileUser) {
+  //   return (
+  //     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 p-4 flex items-center justify-center">
+  //       <Card>
+  //         <CardContent className="text-center py-12">
+  //           <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+  //           <h3 className="text-lg font-semibold mb-2">User not found</h3>
+  //           <Button onClick={() => navigate(-1)}>Go back</Button>
+  //         </CardContent>
+  //       </Card>
+  //     </div>
+  //   );
+  // }
+
+
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -128,10 +148,10 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex flex-col items-center md:items-start">
-                <Avatar className="h-24 w-24 mb-4">
+                {/* <Avatar className="h-24 w-24 mb-4">
                   <AvatarImage src={userInfo.avatar} />
                   <AvatarFallback>{userInfo.name?.slice(0, 2)}</AvatarFallback>
-                </Avatar>
+                </Avatar> */}
                 <h2 className="text-2xl font-bold">{userInfo.name}</h2>
                 <p className="text-sm text-muted-foreground">{userInfo.email}</p>
                 <div className="mt-2 flex items-center gap-2">
@@ -157,6 +177,10 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
                       <MapPin className="inline w-4 h-4 mr-1" />
                       {hostInfo.address}
                     </div>
+                    <div className='flex gap-3'>
+                      <img className='bg-red-100' src="./public/img1.jpg" alt="photo.jpg" />
+                      <img  src="./public/img1.jpg" alt="photo.jpg" />
+                    </div>
                   </div>
                 )}
 
@@ -173,22 +197,25 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
                   </div>
                 )}
 
-                {canSendRequest && hostInfo && (
+                {/* {canSendRequest && hostInfo && ( */}
+                {!isHost && (
                   <div className="mt-4 border-t pt-4">
                     <Button onClick={() => setShowRequestForm(!showRequestForm)} className="mr-2">
-                      <Home className="h-4 w-4" /> Request to Stay
+                      <Home className="h-4 w-4 mr-2" /> Request to Stay
                     </Button>
                     <Button variant="outline">
                       <MessageCircle className="h-4 w-4" /> Message
                     </Button>
                   </div>
+
                 )}
+                
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {showRequestForm && canSendRequest && (
+        {showRequestForm || canSendRequest || (
           <Card>
             <CardHeader>
               <CardTitle>Send Hosting Request</CardTitle>
@@ -220,15 +247,45 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
               </div>
               <div className="flex gap-2">
                 <Button onClick={handleSendRequest}>
-                  <Send className="h-4 w-4" /> Send
+                  <Send className="h-4 w-4 mr-2" /> Send
                 </Button>
-                <Button variant="outline" onClick={() => setShowRequestForm(false)}>
+                <Button variant="outline" onClick={() => setShowRequestForm(true)}>
                   Cancel
                 </Button>
               </div>
             </CardContent>
           </Card>
+        )} 
+
+
+       
+        {/* Photos Gallery */}
+        {/* {profileUser.photos && profileUser.photos.length > 0 && (
+          <Card className="shadow-travel">
+            <CardHeader>
+              <CardTitle>Photos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {profileUser.photos.map((photo, index) => (
+                  <div key={index} className="aspect-square rounded-lg overflow-hidden bg-muted">
+                    <img
+                      src={photo}
+                      alt={`${profileUser.name}'s photo ${index + 1}`}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-200 cursor-pointer"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop';
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
+        */}
+
 
         {reviews.length > 0 && (
           <Card>

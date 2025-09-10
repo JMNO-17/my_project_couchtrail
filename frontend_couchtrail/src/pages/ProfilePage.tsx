@@ -14,7 +14,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 import API from "@/api/index";
 import { Skeleton } from '@/components/ui/skeleton';
 
-// ---------------- Types ----------------
+interface HostingImage {
+  id: number;
+  path: string;
+}
+
 type HostingInfo = {
   details: ReactNode;
   is_available: ReactNode;
@@ -25,6 +29,7 @@ type HostingInfo = {
   max_guests: number;
   amenities: string;
   additional_details: string;
+  images?: HostingImage[];
 };
 
 export const ProfilePage = () => {
@@ -69,6 +74,7 @@ export const ProfilePage = () => {
     </div>
   );
 
+
   useEffect(() => {
     const fetchHostingInfo = async () => {
       try {
@@ -110,6 +116,14 @@ export const ProfilePage = () => {
     fetchHostingInfo();
   }, []);
 
+    const deleteHost = async (id: number) => {
+         const response = await API.delete<HostingInfo[]>(`/hosting-listings/${id}`).finally(() => setIsLoading(false));
+         console.log(response.data)
+         setHostData(null);
+         alert('Back To Traveller')
+    }
+  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -126,8 +140,8 @@ export const ProfilePage = () => {
         {/* Cards Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Compact Profile Card */}
-          <Card className="shadow-md rounded-xl overflow-hidden p-4 flex flex-col justify-between">
-            <div className="space-y-2">
+          {/* <Card className="shadow-md rounded-xl overflow-hidden p-4 flex flex-col justify-between"> */}
+          {/* <div className="space-y-2">
               <h2 className="text-xl font-semibold">{user.name}</h2>
               <div className="flex items-center justify-center gap-2 mt-1 text-muted-foreground">
                 <MapPin className="h-5 w-5" />
@@ -145,28 +159,76 @@ export const ProfilePage = () => {
                 </div>
               )}
 
-                {reviews.length > 0 && (
-              <div className="pt-2 border-t mt-2">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium">Overall Rating</span>
-                  <StarRating rating={Math.round(averageRating)} />
+              {reviews.length > 0 && (
+                <div className="pt-2 border-t mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium">Overall Rating</span>
+                    <StarRating rating={Math.round(averageRating)} />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {averageRating.toFixed(1)} from {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {averageRating.toFixed(1)} from {reviews.length} review{reviews.length !== 1 ? 's' : ''}
-                </p>
-              </div>
-            )}
-            </div>
+              )}
+            </div> */}
 
-          
 
-            {/* Edit Profile Button */}
-            {/* <div className="mt-4 text-right">
+
+          {/* Edit Profile Button */}
+          {/* <div className="mt-4 text-right">
               <Button size="sm" variant="outline" onClick={() => setIsEditing(!isEditing)}>
                 {isEditing ? 'Cancel' : 'Edit'}
               </Button>
             </div> */}
-          </Card>
+          {/* </Card> */}
+
+           {/* Reviews Tabs */}
+
+        <Card className="shadow-md rounded-xl overflow-hidden p-4 flex flex-col justify-between">
+          <Tabs defaultValue="reviews" className="space-y-4">
+            <TabsList className="grid grid-cols-1">
+              <TabsTrigger value="reviews">Recent Reviews</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="reviews" className="space-y-3">
+              {reviews.length === 0 ? (
+                <Card className="shadow-md text-center p-6">
+                  <Star className="mx-auto mb-2 w-12 h-12 text-muted-foreground" />
+                  <h3 className="font-semibold">No reviews yet</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Reviews from your experiences will appear here
+                  </p>
+                </Card>
+              ) : (
+                reviews.slice(0, 3).map((review) => (
+                  <Card key={review.id} className="shadow-md p-4">
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={review.reviewer?.avatar} />
+                        <AvatarFallback>
+                          {review.reviewer?.name?.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium">{review.reviewer?.name}</span>
+                          <StarRating rating={review.rating} />
+                          <Badge variant={review.type === 'host' ? 'default' : 'secondary'}>
+                            {review.type}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-1">{review.comment}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(review.date), 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+          </Tabs>
+        </Card>
 
           {/* Hosting Info / Become a Host */}
           {isLoading ? (
@@ -175,13 +237,40 @@ export const ProfilePage = () => {
             </Card>
           ) : hostData ? (
             <Card className="shadow-md rounded-xl p-6 space-y-4">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+              {/* <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
                 <Home className="w-8 h-8 text-primary" />
+              </div> */}
+
+              <div className="flex items-center justify-between gap-2">
+                {hostData.images && hostData.images.length > 0 ? (
+                  hostData.images.map((img) => (
+                    <img
+                      key={img.id}
+                      src={img.image_path}
+                      alt="Hosting"
+                      className="w-20 h-20 object-cover rounded"
+                    />
+                  ))
+                ) : (
+                  <span className="text-muted-foreground">No images available</span>
+                )}
               </div>
+
 
               <h3 className="text-lg font-semibold text-center">Hosting Information</h3>
 
               <div className="space-y-3 text-sm">
+
+                 <div>
+                  <span className="font-medium">Name: </span>
+                  <span className="text-muted-foreground">{user.name}</span>
+                </div>
+
+                <div>
+                  <span className="font-medium">Email: </span>
+                  <span className="text-muted-foreground">{user.email}</span>
+                </div>
+
                 <div>
                   <span className="font-medium">Address: </span>
                   <span className="text-muted-foreground">{hostData.address}</span>
@@ -215,11 +304,14 @@ export const ProfilePage = () => {
                   )}
                 </div>
 
+
+
                 <div>
                   <span className="font-medium">Amenities: </span>
                   <span className="text-muted-foreground">{hostData.amenities}</span>
                 </div>
               </div>
+              <Button onClick={() => deleteHost(Number(hostData.id))}>Start Traveller</Button>
             </Card>
 
           ) : (
@@ -234,50 +326,8 @@ export const ProfilePage = () => {
           )}
         </div>
 
-        {/* Reviews Tabs */}
-        <Tabs defaultValue="reviews" className="space-y-4">
-          <TabsList className="grid grid-cols-1">
-            <TabsTrigger value="reviews">Recent Reviews</TabsTrigger>
-          </TabsList>
+       
 
-          <TabsContent value="reviews" className="space-y-3">
-            {reviews.length === 0 ? (
-              <Card className="shadow-md text-center p-6">
-                <Star className="mx-auto mb-2 w-12 h-12 text-muted-foreground" />
-                <h3 className="font-semibold">No reviews yet</h3>
-                <p className="text-sm text-muted-foreground">
-                  Reviews from your experiences will appear here
-                </p>
-              </Card>
-            ) : (
-              reviews.slice(0, 3).map((review) => (
-                <Card key={review.id} className="shadow-md p-4">
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={review.reviewer?.avatar} />
-                      <AvatarFallback>
-                        {review.reviewer?.name?.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium">{review.reviewer?.name}</span>
-                        <StarRating rating={review.rating} />
-                        <Badge variant={review.type === 'host' ? 'default' : 'secondary'}>
-                          {review.type}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-1">{review.comment}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(review.date), 'MMM d, yyyy')}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              ))
-            )}
-          </TabsContent>
-        </Tabs>
       </div>
     </div>
 

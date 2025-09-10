@@ -96,7 +96,7 @@ export const HostingPage = () => {
       });
 
       navigate('/profile');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -170,27 +170,19 @@ export const HostingPage = () => {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="images">Upload Images of Location</Label>
-                <Input
-                  id="images"
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Upload Images</label>
+                <input
                   type="file"
                   multiple
                   accept="image/*"
-                  onChange={handleFileChange}
-                  className="mt-1"
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    images: e.target.files ? Array.from(e.target.files) : []
+                  })}
                 />
-                <div className="flex gap-2 mt-2 flex-wrap">
-                  {formData.images.map((file, idx) => (
-                    <img
-                      key={idx}
-                      src={URL.createObjectURL(file)}
-                      alt="preview"
-                      className="w-24 h-24 object-cover rounded-md border"
-                    />
-                  ))}
-                </div>
               </div>
+
             </CardContent>
           </Card>
 
