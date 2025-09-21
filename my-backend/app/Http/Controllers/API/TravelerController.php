@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TravelerResource;
 use App\Models\HostingListing;
 use Illuminate\Http\Request;
 use App\Models\Traveler;
@@ -15,13 +16,25 @@ class TravelerController extends Controller
         $usersInHostListing = HostingListing::pluck('user_id');
 
         $traveler = Traveler::whereNotIn("user_id", $usersInHostListing)->get();
+            foreach($traveler as $t) {
+                $user = User::where("id",$t->user_id)->first();
 
-        return response()->json($traveler);
+                $t->email = $user->email;
+            }
+
+        return $traveler;
+
     }
 
     public function show($id)
     {
-        return response()->json(Traveler::where('user_id', $id)->first());
+        $traveler = Traveler::where('user_id', $id)->first();
+
+        $user = User::where("id",$traveler->id)->first();
+
+        $traveler->email = $user->email;
+
+        return $traveler;
     }
 
     public function store(Request $request)

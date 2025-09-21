@@ -11,7 +11,7 @@ class HostingImage extends Model
 
     protected $fillable = [
         'hosting_listing_id',
-        'path',
+        'image_path',
     ];
 
     /**

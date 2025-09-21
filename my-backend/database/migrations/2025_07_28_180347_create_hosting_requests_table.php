@@ -10,17 +10,18 @@ return new class extends Migration {
         Schema::create('hosting_requests', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('traveler_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('traveler_id')->constrained('travelers')->onDelete('cascade');
             $table->foreignId('host_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('host_entry_id')->constrained('hosts')->onDelete('cascade');
+            // $table->foreignId('host_entry_id')->constrained('hosts')->onDelete('cascade');
 
             $table->string('location');
             $table->date('date');
             $table->text('message');
-            $table->enum('status', ['pending', 'accepted', 'rejected'])->default('pending');
-            $table->boolean('is_suspicious')->default(false);
+            $table->integer('number_of_guests');
+            // $table->enum('status', ['pending', 'accepted', 'rejected'])->default('pending');
+            // $table->boolean('is_suspicious')->default(false);
 
-            $table->foreignId('traveler_id')->constrained('travelers')->onDelete('cascade');
+            // $table->foreignId('traveler_id')->constrained('travelers')->onDelete('cascade');
 
             $table->timestamps();
         });

@@ -3,12 +3,11 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/auth/AuthContext';
 import { useDemo } from '@/hooks/useDemo';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Mail, MapPin, Calendar, Star, Home, MessageCircle, Edit, Shield } from 'lucide-react';
+import { Mail, MapPin, Star, Home, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 import API from "@/api/index";
@@ -16,12 +15,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 interface HostingImage {
   id: number;
-  path: string;
+  image_path: string; // ✅ fixed key
 }
 
 type HostingInfo = {
-  details: ReactNode;
-  is_available: ReactNode;
   id: number;
   host_id: number;
   address: string;
@@ -29,6 +26,7 @@ type HostingInfo = {
   max_guests: number;
   amenities: string;
   additional_details: string;
+  is_available: string;
   images?: HostingImage[];
 };
 
@@ -36,11 +34,6 @@ export const ProfilePage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { getEnrichedReviews, getEnrichedHostings, getEnrichedHostingRequests } = useDemo();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
-    name: user?.name || '',
-    region: user?.region || ''
-  });
   const [hostData, setHostData] = useState<HostingInfo | null>(null);
   const [userLocation, setUserLocation] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,17 +41,11 @@ export const ProfilePage = () => {
   if (!user) return null;
 
   const reviews = getEnrichedReviews().filter(r => r.reviewed_id === user.id);
-  const hostings = getEnrichedHostings().filter(h => h.user_id === user.id);
   const requests = getEnrichedHostingRequests().filter(r => r.traveler_id === user.id || r.host_id === user.id);
 
   const averageRating = reviews.length > 0
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : 0;
-
-  const handleSaveProfile = () => {
-    // In a real app, this would update the user profile
-    setIsEditing(false);
-  };
 
   const StarRating = ({ rating }: { rating: number }) => (
     <div className="flex gap-1">
@@ -74,15 +61,16 @@ export const ProfilePage = () => {
     </div>
   );
 
-
   useEffect(() => {
     const fetchHostingInfo = async () => {
       try {
         setIsLoading(true);
-        const response = await API.get<HostingInfo[]>('/hosting-listings').finally(() => setIsLoading(false));
-        setHostData(response.data[0] ?? null);
+        const response = await API.get<HostingInfo[]>('/hosting-listings');
+        setHostData(response.data && response.data.length > 0 ? response.data[0] : null);
       } catch (err) {
         console.log(err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -90,8 +78,7 @@ export const ProfilePage = () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            const { latitude, longitude } = position.coords;
-            fetchLocationAddress(latitude, longitude);
+            fetchLocationAddress(position.coords.latitude, position.coords.longitude);
           },
           (error) => {
             console.error("Error fetching location: ", error);
@@ -106,7 +93,7 @@ export const ProfilePage = () => {
           `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
         );
         const data = await response.json();
-        setUserLocation(data.display_name); // Set the human-readable address
+        setUserLocation(data.display_name);
       } catch (error) {
         console.error("Error fetching address:", error);
       }
@@ -116,13 +103,19 @@ export const ProfilePage = () => {
     fetchHostingInfo();
   }, []);
 
-    const deleteHost = async (id: number) => {
-         const response = await API.delete<HostingInfo[]>(`/hosting-listings/${id}`).finally(() => setIsLoading(false));
-         console.log(response.data)
-         setHostData(null);
-         alert('Back To Traveller')
+  const deleteHost = async (id: number) => {
+    try {
+      setIsLoading(true);
+      const response = await API.delete(`/hosting-listings/${id}`);
+      console.log(response.data);
+      setHostData(null);
+      alert('Back To Traveller');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
-  
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 p-4">
@@ -137,98 +130,53 @@ export const ProfilePage = () => {
           </p>
         </div>
 
-        {/* Cards Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Compact Profile Card */}
-          {/* <Card className="shadow-md rounded-xl overflow-hidden p-4 flex flex-col justify-between"> */}
-          {/* <div className="space-y-2">
-              <h2 className="text-xl font-semibold">{user.name}</h2>
-              <div className="flex items-center justify-center gap-2 mt-1 text-muted-foreground">
-                <MapPin className="h-5 w-5" />
-                <span>{hostData?.address || 'Location not set'}</span>
-              </div>
 
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail className="h-4 w-4" />
-                <span>{user.email}</span>
-              </div>
-              {user.isAdmin && (
-                <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-primary" />
-                  <Badge variant="default">Admin</Badge>
-                </div>
-              )}
-
-              {reviews.length > 0 && (
-                <div className="pt-2 border-t mt-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">Overall Rating</span>
-                    <StarRating rating={Math.round(averageRating)} />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {averageRating.toFixed(1)} from {reviews.length} review{reviews.length !== 1 ? 's' : ''}
-                  </p>
-                </div>
-              )}
-            </div> */}
-
-
-
-          {/* Edit Profile Button */}
-          {/* <div className="mt-4 text-right">
-              <Button size="sm" variant="outline" onClick={() => setIsEditing(!isEditing)}>
-                {isEditing ? 'Cancel' : 'Edit'}
-              </Button>
-            </div> */}
-          {/* </Card> */}
-
-           {/* Reviews Tabs */}
-
-        <Card className="shadow-md rounded-xl overflow-hidden p-4 flex flex-col justify-between">
-          <Tabs defaultValue="reviews" className="space-y-4">
-            <TabsList className="grid grid-cols-1">
-              <TabsTrigger value="reviews">Recent Reviews</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="reviews" className="space-y-3">
-              {reviews.length === 0 ? (
-                <Card className="shadow-md text-center p-6">
-                  <Star className="mx-auto mb-2 w-12 h-12 text-muted-foreground" />
-                  <h3 className="font-semibold">No reviews yet</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Reviews from your experiences will appear here
-                  </p>
-                </Card>
-              ) : (
-                reviews.slice(0, 3).map((review) => (
-                  <Card key={review.id} className="shadow-md p-4">
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={review.reviewer?.avatar} />
-                        <AvatarFallback>
-                          {review.reviewer?.name?.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium">{review.reviewer?.name}</span>
-                          <StarRating rating={review.rating} />
-                          <Badge variant={review.type === 'host' ? 'default' : 'secondary'}>
-                            {review.type}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-1">{review.comment}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(review.date), 'MMM d, yyyy')}
-                        </p>
-                      </div>
-                    </div>
+          {/* Reviews Tabs */}
+          <Card className="shadow-md rounded-xl overflow-hidden p-4 flex flex-col justify-between">
+            <Tabs defaultValue="reviews" className="space-y-4">
+              <TabsList className="grid grid-cols-1">
+                <TabsTrigger value="reviews">Recent Reviews</TabsTrigger>
+              </TabsList>
+              <TabsContent value="reviews" className="space-y-3">
+                {reviews.length === 0 ? (
+                  <Card className="shadow-md text-center p-6">
+                    <Star className="mx-auto mb-2 w-12 h-12 text-muted-foreground" />
+                    <h3 className="font-semibold">No reviews yet</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Reviews from your experiences will appear here
+                    </p>
                   </Card>
-                ))
-              )}
-            </TabsContent>
-          </Tabs>
-        </Card>
+                ) : (
+                  reviews.slice(0, 3).map((review) => (
+                    <Card key={review.id} className="shadow-md p-4">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={review.reviewer?.avatar} />
+                          <AvatarFallback>
+                            {review.reviewer?.name?.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">{review.reviewer?.name}</span>
+                            <StarRating rating={review.rating} />
+                            <Badge variant={review.type === 'host' ? 'default' : 'secondary'}>
+                              {review.type}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-1">{review.comment}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(review.date), 'MMM d, yyyy')}
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  ))
+                )}
+              </TabsContent>
+            </Tabs>
+          </Card>
 
           {/* Hosting Info / Become a Host */}
           {isLoading ? (
@@ -237,11 +185,7 @@ export const ProfilePage = () => {
             </Card>
           ) : hostData ? (
             <Card className="shadow-md rounded-xl p-6 space-y-4">
-              {/* <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                <Home className="w-8 h-8 text-primary" />
-              </div> */}
-
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 {hostData.images && hostData.images.length > 0 ? (
                   hostData.images.map((img) => (
                     <img
@@ -256,64 +200,49 @@ export const ProfilePage = () => {
                 )}
               </div>
 
-
               <h3 className="text-lg font-semibold text-center">Hosting Information</h3>
 
               <div className="space-y-3 text-sm">
-
-                 <div>
+                <div>
                   <span className="font-medium">Name: </span>
                   <span className="text-muted-foreground">{user.name}</span>
                 </div>
-
                 <div>
                   <span className="font-medium">Email: </span>
                   <span className="text-muted-foreground">{user.email}</span>
                 </div>
-
                 <div>
                   <span className="font-medium">Address: </span>
                   <span className="text-muted-foreground">{hostData.address}</span>
                 </div>
-
                 <div>
                   <span className="font-medium">Home Description: </span>
                   <span className="text-muted-foreground">{hostData.home_description}</span>
                 </div>
-
                 <div>
                   <span className="font-medium">Additional Details: </span>
                   <span className="text-muted-foreground">{hostData.additional_details}</span>
                 </div>
-
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Max Guests: </span>
                   <span className="text-muted-foreground">{hostData.max_guests}</span>
                 </div>
-
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Status: </span>
                   {hostData.is_available === 'active' ? (
-                    <Badge variant="outline" className="text-green-700 border-green-700">
-                      Active
-                    </Badge>
+                    <Badge variant="outline" className="text-green-700 border-green-700">Active</Badge>
                   ) : (
-                    <Badge variant="outline" className="text-red-700 border-red-700">
-                      Inactive
-                    </Badge>
+                    <Badge variant="outline" className="text-red-700 border-red-700">Inactive</Badge>
                   )}
                 </div>
-
-
-
                 <div>
                   <span className="font-medium">Amenities: </span>
                   <span className="text-muted-foreground">{hostData.amenities}</span>
                 </div>
               </div>
+
               <Button onClick={() => deleteHost(Number(hostData.id))}>Start Traveller</Button>
             </Card>
-
           ) : (
             <Card className="shadow-md rounded-xl p-6 text-center">
               <Home className="mx-auto mb-2 w-8 h-8 text-primary" />
@@ -325,11 +254,7 @@ export const ProfilePage = () => {
             </Card>
           )}
         </div>
-
-       
-
       </div>
     </div>
-
   );
 };

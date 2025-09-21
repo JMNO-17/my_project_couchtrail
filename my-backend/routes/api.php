@@ -32,6 +32,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::put('/hosting-listings/{id}', [HostingListingController::class, 'update']);
     Route::delete('/hosting-listings/{id}', [HostingListingController::class, 'destroy']);
 
+    Route::get('/hosting-requests/{id}', [HostingRequestController::class, 'show']);
 
     Route::get('/hosting-requests', [HostingRequestController::class, 'index']);
     Route::post('/hosting-requests', [HostingRequestController::class, 'store']);
@@ -58,4 +59,6 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
     Route::get('/reviews', [ReviewController::class, 'index']);
+
+    Route::get('/hosting-listings/user/{id}', [HostingListingController::class, 'getHostingByUserId']);
 });

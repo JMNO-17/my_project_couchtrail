@@ -12,26 +12,33 @@ class HostingRequest extends Model
     protected $fillable = [
         'traveler_id',
         'host_id',
-        'host_entry_id',
+        // 'host_entry_id',
+        'user_id',
         'location',
         'date',
         'message',
-        'status',
-        'is_suspicious',
+        'number_of_guests',
+        // 'status',
+        // 'is_suspicious',
     ];
 
     protected $casts = [
-        'is_suspicious' => 'boolean',
+        // 'is_suspicious' => 'boolean',
         'date' => 'date',
     ];
 
     /**
      * The traveler (user who made the request)
      */
-    public function traveler()
-    {
-        return $this->belongsTo(\App\Models\User::class, 'traveler_id');
-    }
+    // public function traveler()
+    // {
+    //     return $this->belongsTo(\App\Models\User::class, 'traveler_id');
+    // }
+
+    // public function user()
+    // {
+    //     return $this->belongsTo(User::class,'user_id');
+    // }
 
     /**
      * The host (user receiving the request)
@@ -46,6 +53,6 @@ class HostingRequest extends Model
      */
     public function hostEntry()
     {
-        return $this->belongsTo(\App\Models\Host::class, 'host_entry_id');
+        return $this->belongsTo(\App\Models\Host::class, 'traveler_id');
     }
 }

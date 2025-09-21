@@ -39,7 +39,7 @@ class AuthController extends Controller
         'location' => '',
         'avatar' => '',
         'bio' => '',
-        'trip_count' => 0,
+        // 'trip_count' => 0,
         'is_verified' => false,
     ]);
 

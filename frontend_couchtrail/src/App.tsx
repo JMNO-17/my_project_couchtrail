@@ -19,6 +19,7 @@ import { UserProfilePage } from "./pages/UserProfilePage";
 import { HostingPage } from "./pages/HostingPage";
 import { AdminPanel } from "@/components/admin/AdminPanel";
 import NotFound from "./pages/NotFound";
+import axios from "axios";
 
 type ProtectedProps = {
   children: React.ReactNode;
@@ -38,6 +39,10 @@ const ProtectedRoute = ({ children, adminOnly = false }: ProtectedProps) => {
 
   return <>{children}</>;
 };
+
+// const requestData = await axios.get(`/hosting-requests/${id}`)
+
+// console.log(requestData);
 
 const AppContent: React.FC = () => {
   const { user } = useAuth();

@@ -63,4 +63,15 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasOne(Traveler::class, 'user_id');
     }
+
+
+    public function homeImages()
+    {
+        return $this->hasMany(HomeImages::class);
+    }
+
+    public function hostEntry()
+    {
+        return $this->hasOne(HostingRequest::class,'host_id');
+    }
 }

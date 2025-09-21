@@ -19,7 +19,8 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->enum('role', ['user', 'host', 'admin'])->default('user'); // role-based system
-            $table->string('avatar')->nullable(); // profile picture
+            // $table->string('avatar')->nullable(); // profile picture
+            // $table->string('profile_image')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

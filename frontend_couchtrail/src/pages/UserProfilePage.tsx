@@ -7,29 +7,50 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MapPin, Star, Calendar, MessageCircle, Home, User, ArrowLeft, Send } from 'lucide-react';
+import { MapPin, Star, MessageCircle, Home, User, ArrowLeft, Send, Calendar, Mail, Info, Users, XCircle, CheckCircle, Camera, Wifi, Car, Coffee, Tv, Waves } from 'lucide-react';
+
 import { useToast } from '@/hooks/use-toast';
 import API from '@/api';
 
+import { TLSSocket } from 'tls';
+
+
+type TravelerRequest = {
+  travler_id: number
+}
 interface UserProfilePageProps {
-  passedUserId?: number;
+  passedUserId?: number
+  travelerRequest?: TravelerRequest
 }
 
 export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }) => {
   const params = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
   const { toast } = useToast();
 
   const userId = passedUserId ?? Number(params.userId);
 
-  const [userInfo, setUserInfo] = useState(null);
-  const [hostInfo, setHostInfo] = useState(null);
-  const [travelerInfo, setTravelerInfo] = useState(null);
-  const [reviews, setReviews] = useState([]);
+  const [userInfo, setUserInfo] = useState({
+    id: 0,
+    name: '',
+    email: '',
+    address: '',
+    homeDescription: '',
+    details: '',
+    amenities: [] as string[],
+    number_of_guests: '',
+    is_available: false,
+    images: [] as string[],
+  });
+
+  const [hostInfo, setHostInfo] = useState<any>();
+  const [h, seth] = useState(false)
+  const [travelerInfo, setTravelerInfo] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [showRequestForm, setShowRequestForm] = useState(true);
-  const [requestData, setRequestData] = useState({ location: '', message: '', date: '' });
+  const [requestData, setRequestData] = useState({ location: '', message: '', date: '', number_of_guests: '' });
+  const [travelerRequest, setTravelerRequest] = useState<any>();
 
   const isSelf = user?.id === Number(userId);
 
@@ -38,15 +59,37 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
 
     const fetchAllData = async () => {
       try {
-        const [userRes, hostRes, travelerRes, reviewRes] = await Promise.all([
+        const [userRes, travelerRes, reviewRes] = await Promise.all([
           API.get(`/users/${userId}`),
-          API.get(`/hosting-listings`, { params: { user_id: userId } }),
           API.get(`/travelers`, { params: { user_id: userId } }),
           API.get(`/reviews`, { params: { reviewed_id: userId } })
         ]);
 
-        setUserInfo(userRes.data);
-        setHostInfo(Array.isArray(hostRes.data) && hostRes.data.length > 0 ? hostRes.data[0] : null);
+        const host = await API.get(`/hosting-listings/user/${userId}`);
+
+        if (host) {
+          seth(true)
+        } else {
+          seth(false)
+        }
+
+        const hostData = Array.isArray(userRes.data) && userRes.data.length > 0 ? userRes.data[0] : null;
+
+        setUserInfo({
+          id: userRes.data.id,
+          name: userRes.data.name,
+          email: userRes.data.email,
+          // avatar: userRes.data.avatar ?? '',
+          address: host.data?.address ?? '',
+          homeDescription: host.data?.home_description ?? '',
+          details: host.data?.additional_details ?? '',
+          amenities: host.data?.amenities ? host.data.amenities.split(',') : [],
+          number_of_guests: host.data?.max_guests ?? '1',
+          is_available: host.data?.is_available == 1,
+          images: userRes.data?.image ?? [],
+        });
+
+        setHostInfo(host.data);
         setTravelerInfo(Array.isArray(travelerRes.data) && travelerRes.data.length > 0 ? travelerRes.data[0] : null);
         setReviews(Array.isArray(reviewRes.data) ? reviewRes.data : []);
       } catch (err) {
@@ -57,28 +100,53 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
     fetchAllData();
   }, [userId]);
 
-  console.log(userInfo)
 
-  if (!userInfo) {
+ 
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // simulate loading (replace with real data fetch)
+    const timer = setTimeout(() => setIsLoading(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+
+  if (!userInfo.id) {
     return (
+      // <div className="min-h-screen p-4 flex items-center justify-center">
+      //   <Card>
+      //     <CardContent className="text-center py-12">
+      //       <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+      //       <h3 className="text-lg font-semibold mb-2">Loading</h3>
+      //       {/* <Button onClick={() => navigate(-1)}>Go back</Button>  */}
+      //     </CardContent>
+      //   </Card>
+      // </div>
+
       <div className="min-h-screen p-4 flex items-center justify-center">
-        <Card>
-          <CardContent className="text-center py-12">
-            <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">User not found</h3>
-            <Button onClick={() => navigate(-1)}>Go back</Button>
-          </CardContent>
-        </Card>
-      </div>
+      {isLoading ? (
+        <div className="flex flex-col items-center">
+          {/* Spinner */}
+          <div className="h-12 w-12 border-4 border-gray-300 border-t-orange-500 rounded-full animate-spin"></div>
+          <h3 className="text-lg font-semibold mt-4">Loading...</h3>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center">
+          <CheckCircle className="h-12 w-12 text-green-500" />
+          <h3 className="text-lg font-semibold mt-4">Loaded!</h3>
+        </div>
+      )}
+    </div>
+
     );
   }
 
   const isHost = !!hostInfo;
 
-  console.log(hostInfo)
   const isTraveler = !!travelerInfo;
   const canSendRequest = !isSelf && user?.role === 'user' && isTraveler;
   const averageRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+
   const handleSendRequest = async () => {
     if (!requestData.location || !requestData.message || !requestData.date) {
       toast({
@@ -90,50 +158,55 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
     }
 
     try {
-      await API.post('/hosting-requests', {
-        traveler_id: user.id,
-        host_id: userInfo.id,
-        host_entry_id: hostInfo?.id,
+      const value = {
+        traveler_id: travelerInfo.id,
+        host_id: userId,
         location: requestData.location,
         message: requestData.message,
         date: requestData.date,
-        status: 'pending',
-        is_suspicious: false
+        number_of_guests: requestData.number_of_guests,
+      }
+      console.log('values ', value)
+      // const response = await API.post('/hosting-requests', {
+      //   value
+      // });
+      const response = await API.post('/hosting-requests', {
+        traveler_id: travelerInfo.id,
+        host_id: userId,
+        location: requestData.location,
+        message: requestData.message,
+        date: requestData.date,
+        number_of_guests: requestData.number_of_guests,
       });
+
+
+      setTravelerRequest({
+        traveler_id: travelerInfo.id,
+        host_id: userId,
+        location: requestData.location,
+        message: requestData.message,
+        date: requestData.date,
+        number_of_guests: requestData.number_of_guests,
+      })
+
+      console.log('this is traveler req ', travelerRequest)
 
       toast({
         title: 'Request Sent',
-        description: `Hosting request sent to ${userInfo.name}`
+        description: `Hosting request sent to ${userInfo.name}`,
       });
 
       setShowRequestForm(false);
-      setRequestData({ location: '', message: '', date: '' });
+      setRequestData({ location: '', message: '', date: '', number_of_guests: '' });
     } catch (err) {
       toast({
         title: 'Error',
         description: 'Failed to send request',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
 
-  // const profileUser = user.find(u => u.id === parseInt(userId || '0'));
-  // if (!profileUser) {
-  //   return (
-  //     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 p-4 flex items-center justify-center">
-  //       <Card>
-  //         <CardContent className="text-center py-12">
-  //           <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-  //           <h3 className="text-lg font-semibold mb-2">User not found</h3>
-  //           <Button onClick={() => navigate(-1)}>Go back</Button>
-  //         </CardContent>
-  //       </Card>
-  //     </div>
-  //   );
-  // }
-
-
-  
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -152,7 +225,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
                   <AvatarImage src={userInfo.avatar} />
                   <AvatarFallback>{userInfo.name?.slice(0, 2)}</AvatarFallback>
                 </Avatar> */}
-                <h2 className="text-2xl font-bold">{userInfo.name}</h2>
+                {/* <h2 className="text-2xl font-bold">{userInfo.name}</h2>
                 <p className="text-sm text-muted-foreground">{userInfo.email}</p>
                 <div className="mt-2 flex items-center gap-2">
                   <Badge variant={isHost ? 'default' : 'secondary'}>
@@ -165,11 +238,11 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
                       <span className="text-muted-foreground">({reviews.length})</span>
                     </div>
                   )}
-                </div>
+                </div> */}
               </div>
 
               <div className="flex-1">
-                {isHost && hostInfo && (
+                {/* {isHost && hostInfo && (
                   <div className="space-y-4">
                     <h3 className="font-semibold text-lg mb-2">About My Home</h3>
                     <p className="text-muted-foreground">{hostInfo.home_description}</p>
@@ -179,27 +252,169 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
                     </div>
                     <div className='flex gap-3'>
                       <img className='bg-red-100' src="./public/img1.jpg" alt="photo.jpg" />
-                      <img  src="./public/img1.jpg" alt="photo.jpg" />
+                      <img src="./public/img1.jpg" alt="photo.jpg" />
                     </div>
-                  </div>
-                )}
 
-                {isTraveler && !isHost && (
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg mb-2">About Me</h3>
-                    <p className="text-muted-foreground">
-                      Traveler exploring the world and connecting with locals.
-                    </p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      Amenities: {hostInfo.amenities}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      HomeDescription: {hostInfo.homeDescription}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      Details: {hostInfo.details}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      MaxGuests: {hostInfo.number_of_guests}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      Is_available: {hostInfo.is_available}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      {hostInfo.images}
+                    </div>
+
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4" />
-                      Joined: {new Date(userInfo.created_at).toLocaleDateString()}
+                      Joined: {new Date().toLocaleDateString()}
                     </div>
+
+                  </div>
+                )} */}
+
+                {isTraveler && !!isHost && (
+                  <div className="space-y-2 text-center flex items-center justify-evenly">
+                    {/* <p className="text-muted-foreground">
+                      Traveler exploring the world and connecting with locals.
+                    </p> */}
+                    <div className='flex flex-col items-center gap-2 justify-center'>
+                      <h3 className="font-semibold text-lg mb-2">About Me</h3>
+
+                      <div className="flex items-center gap-2 justify-center">
+                        <img
+                          src={userInfo?.images}
+                          alt="Profile"
+                          className="h-40 w-45 rounded-full shadow-md object-cover"
+                        />
+
+                        {/* {userInfo.images?.length > 0 ? (
+                          <img
+                            src={userInfo.images[0]}
+                            alt="Profile"
+                            className="h-12 w-12 rounded-full shadow-md object-cover"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center shadow-md">
+                            <Camera className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <span className="text-sm text-muted-foreground">
+                          {userInfo.images?.length || 0} image(s) uploaded
+                        </span> */}
+                      </div>
+
+
+                      <div className="flex items-center gap-2 justify-center">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span>{userInfo.name}</span>
+                      </div>
+
+                    </div>
+
+                    <div className='flex flex-col  gap-2 justify-center items-start'>
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span>{userInfo.email}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span>{userInfo.address}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Home className="h-4 w-4 text-muted-foreground" />
+                        <span>{userInfo.homeDescription}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                        <span>{userInfo.details || 'No additional details'}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span>
+                          {userInfo.number_of_guests} guest{userInfo.number_of_guests !== '1' ? 's' : ''}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {userInfo.is_available ? (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-red-500" />
+                        )}
+                        <span>{userInfo.is_available ? 'Available' : 'Not Available'}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        Joined: {new Date().toLocaleDateString()}
+                      </div>
+
+                      {userInfo.amenities && userInfo.amenities.length > 0 && (
+                        <div>
+                          <div className="flex flex-wrap gap-2 mt-5">
+                            {userInfo.amenities.map((amenity: string) => {
+                              const getAmenityIcon = (id: string) => {
+                                switch (id) {
+                                  case 'wifi':
+                                    return Wifi
+                                  case 'parking':
+                                    return Car
+                                  case 'kitchen':
+                                    return Coffee
+                                  case 'tv':
+                                    return Tv
+                                  case 'pool':
+                                    return Waves
+                                  default:
+                                    return Home
+                                }
+                              }
+                              const Icon = getAmenityIcon(amenity)
+                              return (
+                                <Badge
+                                  key={amenity}
+                                  variant="secondary"
+                                  className="flex items-center gap-1"
+                                >
+                                  <Icon className="h-3 w-3" />
+                                  {amenity.charAt(0).toUpperCase() + amenity.slice(1)}
+                                </Badge>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+
+
                   </div>
                 )}
 
+
+                {/* <div className="border-t mt-4 ml-0 mr-0 p-0"></div> */}
+
+
                 {/* {canSendRequest && hostInfo && ( */}
-                {!isHost && (
-                  <div className="mt-4 border-t pt-4">
+
+
+                {isHost && (
+                  <div className="mt-4 pt-4 ml-[530px]">
+
                     <Button onClick={() => setShowRequestForm(!showRequestForm)} className="mr-2">
                       <Home className="h-4 w-4 mr-2" /> Request to Stay
                     </Button>
@@ -209,7 +424,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
                   </div>
 
                 )}
-                
+
               </div>
             </div>
           </CardContent>
@@ -224,28 +439,41 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
               <div>
                 <Label>Location</Label>
                 <Input
+                  name='location'
                   value={requestData.location}
                   onChange={(e) => setRequestData(prev => ({ ...prev, location: e.target.value }))}
                   placeholder="Enter city or region"
                 />
+
               </div>
               <div>
                 <Label>Date</Label>
                 <Input
+                  name='date'
                   type="date"
                   value={requestData.date}
                   onChange={(e) => setRequestData(prev => ({ ...prev, date: e.target.value }))}
                 />
               </div>
               <div>
+                <Label>Number of Guest</Label>
+                <Input
+                  name='number_of_guests'
+                  type='number_of_guests'
+                  value={requestData.number_of_guests}
+                  onChange={(e) => setRequestData(prev => ({ ...prev, number_of_guests: e.target.value }))}
+                />
+              </div>
+              <div>
                 <Label>Message</Label>
                 <Textarea
+                  name='message'
                   value={requestData.message}
                   onChange={(e) => setRequestData(prev => ({ ...prev, message: e.target.value }))}
                   placeholder="Tell the host about your travel plans"
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 ml-[670px]">
                 <Button onClick={handleSendRequest}>
                   <Send className="h-4 w-4 mr-2" /> Send
                 </Button>
@@ -255,23 +483,21 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
               </div>
             </CardContent>
           </Card>
-        )} 
+        )}
 
-
-       
         {/* Photos Gallery */}
-        {/* {profileUser.photos && profileUser.photos.length > 0 && (
+        {/* {userInfo.photos && userInfo.photos.length > 0 && (
           <Card className="shadow-travel">
             <CardHeader>
               <CardTitle>Photos</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {profileUser.photos.map((photo, index) => (
+                {userInfo.photos.map((photo, index) => (
                   <div key={index} className="aspect-square rounded-lg overflow-hidden bg-muted">
                     <img
                       src={photo}
-                      alt={`${profileUser.name}'s photo ${index + 1}`}
+                      alt={`${userInfo.name}'s photo ${index + 1}`}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-200 cursor-pointer"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
@@ -283,11 +509,9 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
               </div>
             </CardContent>
           </Card>
-        )}
-        */}
+        )} */}
 
-
-        {reviews.length > 0 && (
+        {/* {reviews.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Reviews</CardTitle>
@@ -315,7 +539,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
               ))}
             </CardContent>
           </Card>
-        )}
+        )} */}
       </div>
     </div>
   );

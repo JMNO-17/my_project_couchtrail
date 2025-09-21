@@ -7,12 +7,10 @@ import { Input } from '@/components/ui/input';
 import { MapPin, Search, Star, MessageCircle, Heart, Globe, Home, Calendar } from 'lucide-react';
 import API from '@/api';
 
-
 interface User {
   id: number;
   name: string;
   email: string;
-  // avatar?: string;
   role: 'user' | 'admin' | string;
   created_at: string;
 }
@@ -31,7 +29,6 @@ interface Host {
   user?: User;
   name?: string;
   location?: string;
-  // avatar?: string;
   rating?: number;
   reviewCount?: number;
   description?: string;
@@ -46,8 +43,8 @@ interface Traveler {
   user_id: Idish;
   address?: string;
   name?: string;
+  email?: string;
   currentLocation?: string;
-  // avatar?: string;
   joinedDate?: string;
   tripCount?: number;
   images?: HostingImage[];
@@ -100,9 +97,18 @@ export const CommunityPage: React.FC = () => {
       setLoading(true);
       setErrorMsg(null);
       try {
-        const { data } = await API.get('/hosts');
-        if (!ignore) setHostData(Array.isArray(data) ? data : []);
-      } catch {
+        const res = await API.get('/hosts');
+        console.log('Hosts API Response:', res.data);
+
+        const payload = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
+
+        if (!ignore) setHostData(payload);
+      } catch (err) {
+        console.error(err);
         if (!ignore) setErrorMsg('Failed to load hosts.');
       } finally {
         if (!ignore) setLoading(false);
@@ -113,9 +119,18 @@ export const CommunityPage: React.FC = () => {
       setLoading(true);
       setErrorMsg(null);
       try {
-        const { data } = await API.get('/travelers');
-        if (!ignore) setTravellerData(Array.isArray(data) ? data : []);
-      } catch {
+        const res = await API.get('/travelers');
+        console.log('Travelers API Response:', res.data);
+
+        const payload = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
+
+        if (!ignore) setTravellerData(payload);
+      } catch (err) {
+        console.error(err);
         if (!ignore) setErrorMsg('Failed to load travelers.');
       } finally {
         if (!ignore) setLoading(false);
@@ -129,6 +144,8 @@ export const CommunityPage: React.FC = () => {
       ignore = true;
     };
   }, [activeTab]);
+
+  console.log(filteredTravelers);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/10 p-6">
@@ -204,11 +221,6 @@ export const CommunityPage: React.FC = () => {
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
-                            {/* <img
-                              src={host.avatar || '/default-host.png'}
-                              alt={host.name ?? 'Host'}
-                              className="h-14 w-14 rounded-full border-2 border-primary/20 shadow-sm object-cover"
-                            /> */}
                             <div>
                               <CardTitle className="text-xl font-semibold flex items-center gap-2">
                                 <span className="truncate max-w-[180px]">
@@ -240,21 +252,6 @@ export const CommunityPage: React.FC = () => {
                       </CardHeader>
 
                       <CardContent className="space-y-4">
-                        {/* Gallery */}
-                        {/* {host.images && host.images.length > 0 && (
-                          <div className="grid grid-cols-2 gap-2">
-                            {host.images.slice(0, 4).map((img) => (
-                              <img
-                                key={img.id}
-                                src={`/storage/${img.image_path}`}
-                                alt="Host Listing"
-                                className="w-full h-28 object-cover rounded-lg shadow-sm"
-                              />
-                            ))}
-                          </div>
-                        )} */}
-
-
                         <CardDescription className="text-sm leading-relaxed min-h-[40px] text-muted-foreground flex items-center gap-2">
                           <Home className="w-4 h-4 text-muted-foreground" />
                           {host.description ?? 'No description provided.'}
@@ -327,15 +324,13 @@ export const CommunityPage: React.FC = () => {
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
-                            {/* <img
-                              src={traveler.avatar || '/default-traveler.png'}
-                              alt={traveler.name ?? 'Traveler'}
-                              className="h-14 w-14 rounded-full border-2 border-primary/20 shadow-sm object-cover"
-                            /> */}
                             <div>
                               <CardTitle className="text-xl font-semibold truncate max-w-[220px]">
                                 {traveler.name ?? 'Unnamed Traveler'}
                               </CardTitle>
+                              <p className="text-sm text-gray-500 truncate max-w-[220px]">
+                                {traveler.email ?? 'No email provided'}
+                              </p>
                             </div>
                           </div>
                           <Button
@@ -350,38 +345,6 @@ export const CommunityPage: React.FC = () => {
                       </CardHeader>
 
                       <CardContent className="space-y-4">
-                        {/* Gallery */}
-                        {traveler.images && traveler.images.length > 0 && (
-                          <div className="grid grid-cols-2 gap-2">
-                            {traveler.images.slice(0, 4).map((img) => (
-                              <img
-                                key={img.id}
-                                src={`/storage/${img.image_path}`}
-                                alt="Traveler Photo"
-                                className="w-full h-28 object-cover rounded-lg shadow-sm"
-                              />
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between text-sm">
-                          {/* <div className="flex items-center space-x-2 text-muted-foreground">
-                            <Globe className="w-4 h-4" />
-                            <span>{traveler.tripCount ?? 0} trips</span>
-                          </div> */}
-                          <Badge
-                            variant="outline"
-                            className="text-xs rounded-full px-2 py-1"
-                          >
-                            Joined{' '}
-                            {traveler.joinedDate
-                              ? new Date(
-                                traveler.joinedDate
-                              ).toLocaleDateString()
-                              : '—'}
-                          </Badge>
-                        </div>
-
                         <div className="flex space-x-3 pt-2">
                           <Button
                             variant="travel"
@@ -391,14 +354,6 @@ export const CommunityPage: React.FC = () => {
                           >
                             <MessageCircle className="w-4 h-4 mr-1" />
                             Connect
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-full"
-                            onClick={() => navigate(`/profile/${uid}`)}
-                          >
-                            View Profile
                           </Button>
                         </div>
                       </CardContent>
@@ -411,14 +366,14 @@ export const CommunityPage: React.FC = () => {
             {/* Empty State */}
             {((activeTab === 'hosts' && filteredHosts.length === 0) ||
               (activeTab === 'travelers' && filteredTravelers.length === 0)) && (
-                <div className="text-center py-20">
-                  <Search className="w-12 h-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
-                  <p className="text-lg font-medium">No {activeTab} found</p>
-                  <p className="text-sm text-muted-foreground">
-                    Try changing your search terms.
-                  </p>
-                </div>
-              )}
+              <div className="text-center py-20">
+                <Search className="w-12 h-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
+                <p className="text-lg font-medium">No {activeTab} found</p>
+                <p className="text-sm text-muted-foreground">
+                  Try changing your search terms.
+                </p>
+              </div>
+            )}
           </>
         )}
       </div>

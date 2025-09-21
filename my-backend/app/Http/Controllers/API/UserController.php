@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\HostingImage;
+use App\Models\HostingListing;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -23,6 +25,15 @@ class UserController extends Controller
         if (!$user) {
             return response()->json(['message' => 'User not found'], 404);
         }
+
+        $hostlistings = HostingListing::where('user_id',$user->id)->first();
+
+        $hostimage = HostingImage::where('hosting_listing_id',$hostlistings->id)->first();
+
+        $user->image = $hostimage
+            ? asset('storage/' . $hostimage->image_path)
+            : null;;
+
         return response()->json($user);
     }
     // PATCH /api/users/{id}/toggle-active

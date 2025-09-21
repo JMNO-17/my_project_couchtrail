@@ -23,22 +23,22 @@ class HostingListingController extends Controller
     public function index()
     {
         $userId = auth()->guard('api')->id();
-        $listings = HostingListing::with('images')->where('host_id', $userId)->get();
+        $listings = HostingListing::with('hostImage')->where('user_id', $userId)->get();
         return response()->json($listings);
     }
 
     public function show($id)
     {
         $userId = auth()->guard('api')->id();
-        $listing = HostingListing::with('images')->find($id);
+        $listing = HostingListing::with('hostImage')->find($id);
 
         if (!$listing) {
             return response()->json(['error' => 'HostingListing Not Found'], 404);
         }
 
-        if ($listing->host_id !== $userId) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
+        // if ($listing->host_id !== $userId) {
+        //     return response()->json(['error' => 'Unauthorized'], 403);
+        // }
 
         return response()->json($listing);
     }
@@ -52,20 +52,20 @@ class HostingListingController extends Controller
 
         $listing = $this->repository->create($validatedData, $userId);
 
-        if ($request->hasFile('images')) {
-            $imageName = time() . '.' . $request->images->extension();
-            $request->images->move(public_path('userImage'), $imageName);
-            $validatedData = array_merge($validatedData, ['image' => $imageName]);
+        if ($request->hasFile('profile_image')) {
+            $imageName = time() . '.' . $request->profile_image->extension();
+            $request->profile_image->move(public_path('userImage'), $imageName);
+            $validatedData = array_merge($validatedData, ['profile_image' => $imageName]);
         }
-        
+
         HostingImage::create([
             'hosting_listing_id' => $listing->id,
-            'path' => $imageName
+            'image_path' => $imageName
         ]);
 
-        $listing->load('images');
+        $listing->load('hostImage');
 
-        return response()->json($listing->load('images'), 201);
+        return response()->json($listing->load('hostImage'), 201);
     }
 
     public function update(UpdateHostingListingRequest $request, $id)
@@ -87,12 +87,30 @@ class HostingListingController extends Controller
         $userId = auth()->guard('api')->id();
         $listing = HostingListing::findOrFail($id);
 
-        if ($listing->host_id !== $userId) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
         $listing->delete();
-
+        
         return response()->json(['message' => 'Listing deleted']);
     }
+
+public function getHostingByUserId($id) {
+    $host = HostingListing::where('user_id', $id)
+                ->first();
+
+    if (!$host) {
+        return response()->json(['error' => 'Hosting listing not found'], 404);
+    }
+
+    // Add full URL for host profile image
+    $host->hostImage_url = $host->hostImage
+        ? asset('storage/' . $host->hostImage->image_path)
+        : null;
+
+    // Add full URLs for home images
+    $host->homeImages_urls = $host->homeImages->map(function($img) {
+        return asset('storage/' . $img->image_path);
+    })->toArray();
+
+    return response()->json($host);
+}
+
 }
