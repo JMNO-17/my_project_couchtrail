@@ -14,9 +14,9 @@ class HostController extends Controller
 
  public function index(Request $request)
 {
-    $query = HostingListing::with('user');
+    $userId = auth()->guard('api')->id();
+    $query = HostingListing::with('user')->where('user_id','!=',$userId);
 
-    // ✅ Filter by user_id if provided
     if ($request->has('user_id')) {
         $query->where('user_id', $request->user_id);
     }

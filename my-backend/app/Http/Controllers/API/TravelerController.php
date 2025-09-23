@@ -14,8 +14,8 @@ class TravelerController extends Controller
     public function index()
     {
         $usersInHostListing = HostingListing::pluck('user_id');
-
-        $traveler = Traveler::whereNotIn("user_id", $usersInHostListing)->get();
+        $userId = auth()->guard('api')->id();
+        $traveler = Traveler::whereNotIn("user_id", $usersInHostListing)->where('user_id','!=', $userId)->get();
             foreach($traveler as $t) {
                 $user = User::where("id",$t->user_id)->first();
 

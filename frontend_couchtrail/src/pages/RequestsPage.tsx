@@ -35,7 +35,7 @@ export const RequestsPage = () => {
   // Handle accept/reject action
   const handleRequestAction = async (hostingRequestId: number, status: "accepted" | "rejected") => {
     try {
-      await API.patch(`/hosting-requests/${hostingRequestId}/status`, { status });
+     await API.patch(`/hosting-requests/${hostingRequestId}/status`, { status });
 
       // Remove request from UI
       setRequests((prev) => prev.filter((req) => req.id !== hostingRequestId));

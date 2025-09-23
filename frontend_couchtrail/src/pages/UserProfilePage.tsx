@@ -174,20 +174,9 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
       // const response = await API.post('/hosting-requests', {
       //   value
       // });
-      const response = await API.post('/hosting-requests', {
-        id:requestData.id,
-        traveler_id: travelerInfo.id,
-        host_id: userId,
-        location: requestData.location,
-        message: requestData.message,
-        date: requestData.date,
-        number_of_guests: requestData.number_of_guests,
-        status:requestData.status,
-        created_at:requestData.created_at,
-        name:requestData.name,
-        user_id:requestData.user_id,
+      const response = await API.post('/hosting-requests', value);
 
-      });
+      console.log('g', response.data);
 
 
       setTravelerRequest({

@@ -18,13 +18,24 @@ class HostingRequestController extends Controller
     //     return HostingRequestResource::collection($hostingRequest);
     // }
 
+    public function getAcceptRequest($id)
+    {
+
+        $hostingRequest = HostingRequest::with('traveler')->where('host_id', $id)->where('status','accepted')->get();
+
+        return HostingRequestResource::collection($hostingRequest);
+
+    }
+
     public function getRequestByHostId($id)
     {
-        $hostingRequest = HostingRequest::with('traveler')->where('host_id', $id)->get();
+        $hostingRequest = HostingRequest::with('traveler')->where('host_id', $id)->where('status','pending')->get();
+
+
         return HostingRequestResource::collection($hostingRequest);
     }
 
-    public function getRequestByTraveler($id)
+    public function getRequestByTravelerId($id)
     {
         return HostingRequest::where('traveler_id', $id)->get();
     }

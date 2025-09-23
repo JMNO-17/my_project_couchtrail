@@ -34,6 +34,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::patch('/hosting-requests/{hostingRequest}/status', [HostingRequestController::class, 'updateStatus']);
     Route::get('/hosting-requests/{id}', [HostingRequestController::class, 'show']);
     Route::get('/hosting-requests/host_id/{id}',[HostingRequestController::class, 'getRequestByHostId']);
+    Route::get('/hosting-requests/host_id/{id}/accepted', [HostingRequestController::class, 'getAcceptRequest']);
     Route::get('/hosting-requests/traveler_id/{id}',[HostingRequestController::class, 'getRequestByTravelerId']);
     Route::get('/hosting-requests', [HostingRequestController::class, 'index']);
     Route::post('/hosting-requests', [HostingRequestController::class, 'store']);
