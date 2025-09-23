@@ -241,13 +241,13 @@ export const CommunityPage: React.FC = () => {
                               </div>
                             </div>
                           </div>
-                          <Button
+                          {/* <Button
                             variant="ghost"
                             size="icon"
                             className="text-muted-foreground hover:text-red-500"
                           >
                             <Heart className="w-5 h-5" />
-                          </Button>
+                          </Button> */}
                         </div>
                       </CardHeader>
 
@@ -259,21 +259,21 @@ export const CommunityPage: React.FC = () => {
 
                         <div className="flex items-center justify-between text-sm">
                           <div className="flex items-center space-x-1">
-                            <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                            <span className="font-medium">
+                            {/* <Star className="w-4 h-4 text-yellow-400 fill-current" /> */}
+                            {/* <span className="font-medium">
                               {host.rating ?? '-'}
-                            </span>
-                            <span className="text-muted-foreground">
+                            </span> */}
+                            {/* <span className="text-muted-foreground">
                               ({host.reviewCount ?? 0})
-                            </span>
+                            </span> */}
                           </div>
-                          <Badge
+                          {/* <Badge
                             variant="outline"
                             className="text-xs rounded-full px-2 py-1"
                           >
                             <Calendar className="w-3 h-3 mr-1" />
                             {host.responseTime ?? '—'}
-                          </Badge>
+                          </Badge> */}
                         </div>
 
                         <div className="flex flex-wrap gap-2">

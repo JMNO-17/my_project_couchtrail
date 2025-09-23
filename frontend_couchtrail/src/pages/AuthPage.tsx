@@ -27,7 +27,7 @@ export const AuthPage: React.FC = () => {
   return (
     <div className="min-h-screen flex">
       {/* Left side - Hero Image */}
-      <div className="hidden lg:flex lg:w-1/2 relative">
+      <div className="hidden lg:flex lg:w-1/2 relative h-[100vh] overflow-hidden">
         <img
           src="./public/img2.jpg"
           alt="Travel Community"
@@ -48,6 +48,7 @@ export const AuthPage: React.FC = () => {
           </div>
         </div>
       </div>
+
 
       {/* Right side - Auth Form */}
       <div className="flex-1 flex items-center justify-center p-6 bg-gradient-to-br from-background via-background to-secondary/10">

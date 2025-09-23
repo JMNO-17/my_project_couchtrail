@@ -49,7 +49,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
   const [travelerInfo, setTravelerInfo] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [showRequestForm, setShowRequestForm] = useState(true);
-  const [requestData, setRequestData] = useState({ location: '', message: '', date: '', number_of_guests: '' });
+  const [requestData, setRequestData] = useState({id: '',traveler_id: '',host_id: '', user_id: '' ,name: '',location: '', message: '', date: '', number_of_guests: '', status: 'pending',created_at: ''});
   const [travelerRequest, setTravelerRequest] = useState<any>();
 
   const isSelf = user?.id === Number(userId);
@@ -165,18 +165,28 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
         message: requestData.message,
         date: requestData.date,
         number_of_guests: requestData.number_of_guests,
+        status:requestData.status,
+        name: requestData.name,
+        created_at: requestData.created_at,
+        user_id: requestData.user_id,
       }
       console.log('values ', value)
       // const response = await API.post('/hosting-requests', {
       //   value
       // });
       const response = await API.post('/hosting-requests', {
+        id:requestData.id,
         traveler_id: travelerInfo.id,
         host_id: userId,
         location: requestData.location,
         message: requestData.message,
         date: requestData.date,
         number_of_guests: requestData.number_of_guests,
+        status:requestData.status,
+        created_at:requestData.created_at,
+        name:requestData.name,
+        user_id:requestData.user_id,
+
       });
 
 
@@ -187,6 +197,11 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
         message: requestData.message,
         date: requestData.date,
         number_of_guests: requestData.number_of_guests,
+        created_at: requestData.created_at,
+        user_id: requestData.user_id,
+        name:requestData.name,
+        status:requestData.status,
+        id:requestData.id,
       })
 
       console.log('this is traveler req ', travelerRequest)
@@ -197,7 +212,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
       });
 
       setShowRequestForm(false);
-      setRequestData({ location: '', message: '', date: '', number_of_guests: '' });
+      setRequestData({id: '',traveler_id: '',host_id: '', user_id: '' ,name: '',location: '', message: '', date: '', number_of_guests: '', status: 'pending',created_at: ''});
     } catch (err) {
       toast({
         title: 'Error',

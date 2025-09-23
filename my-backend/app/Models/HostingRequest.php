@@ -8,17 +8,17 @@ use Illuminate\Database\Eloquent\Model;
 class HostingRequest extends Model
 {
     use HasFactory;
-
     protected $fillable = [
         'traveler_id',
         'host_id',
-        // 'host_entry_id',
         'user_id',
         'location',
         'date',
         'message',
         'number_of_guests',
-        // 'status',
+        'status',
+        'created_at'
+
         // 'is_suspicious',
     ];
 
@@ -54,5 +54,10 @@ class HostingRequest extends Model
     public function hostEntry()
     {
         return $this->belongsTo(\App\Models\Host::class, 'traveler_id');
+    }
+
+    public function traveler()
+    {
+        return $this->belongsTo(User::class, 'traveler_id');
     }
 }

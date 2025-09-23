@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import API from '@/api';
 
 export interface User {
+  token: any;
   hostingListings: any;
   id: number;
   name: string;

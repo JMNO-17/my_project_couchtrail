@@ -18,7 +18,8 @@ return new class extends Migration {
             $table->date('date');
             $table->text('message');
             $table->integer('number_of_guests');
-            // $table->enum('status', ['pending', 'accepted', 'rejected'])->default('pending');
+            $table->enum('status', ['pending', 'accepted', 'rejected'])->default('pending');
+
             // $table->boolean('is_suspicious')->default(false);
 
             // $table->foreignId('traveler_id')->constrained('travelers')->onDelete('cascade');
