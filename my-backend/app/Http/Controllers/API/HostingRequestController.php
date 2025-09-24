@@ -76,9 +76,16 @@ class HostingRequestController extends Controller
 
     public function updateStatus(Request $request, $id)
     {
+
         $hostingRequest = HostingRequest::find($id);
         $hostingRequest->status = $request->status;
         $hostingRequest->save();
+
+        if($request->status === 'accepted') {
+            HostingRequest::where('host_id', $hostingRequest->host_id)
+            ->where('id','!=',$id)
+            ->update(['status' => 'rejected']);
+        }
 
         return response()->json([
             'message' => 'Hosting request status updated successfully.',

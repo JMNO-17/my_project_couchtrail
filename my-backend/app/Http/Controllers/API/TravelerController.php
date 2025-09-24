@@ -5,9 +5,11 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TravelerResource;
 use App\Models\HostingListing;
+use App\Models\HostingRequest;
 use Illuminate\Http\Request;
 use App\Models\Traveler;
 use App\Models\User;
+use App\Http\Resources\HostingRequestResource;
 
 class TravelerController extends Controller
 {
@@ -53,4 +55,42 @@ class TravelerController extends Controller
 
         return response()->json($traveler, 201);
     }
+
+    // public function getTravelerByUserId($id)
+    // {
+    //     $traveler = Traveler::where('user_id', $id)->first();
+
+    //     $hostingRequest = HostingRequest::where('traveler_id', $traveler->id)->get();
+
+    //     return HostingRequestResource::collection($hostingRequest);
+    // }
+
+    public function getTravelerByUserId($id)
+{
+    $traveler = Traveler::where('user_id', $id)->first();
+
+    if (!$traveler) {
+        return response()->json([
+            'success' => 0,
+            'data' => [],
+            'message' => 'No traveler found for this user.'
+        ]);
+    }
+
+    $hostingRequest = HostingRequest::with('traveler')
+        ->where('traveler_id', $traveler->id)
+        ->get();
+    $result = [];
+        foreach($hostingRequest as $request) {
+            $hostData = HostingListing::where('user_id',$request->host_id)->first();
+            $result[] = $hostData;
+        }
+
+
+    return response()->json([
+        'success' => 1,
+        'data' => $hostingRequest
+    ]);
+}
+
 }

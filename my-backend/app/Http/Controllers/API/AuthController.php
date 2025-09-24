@@ -117,7 +117,7 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $roleName,
+                'role' => $user->role,
             ];
 
             if (!$user) {

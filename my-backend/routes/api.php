@@ -35,12 +35,13 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/hosting-requests/{id}', [HostingRequestController::class, 'show']);
     Route::get('/hosting-requests/host_id/{id}',[HostingRequestController::class, 'getRequestByHostId']);
     Route::get('/hosting-requests/host_id/{id}/accepted', [HostingRequestController::class, 'getAcceptRequest']);
-    Route::get('/hosting-requests/traveler_id/{id}',[HostingRequestController::class, 'getRequestByTravelerId']);
+
     Route::get('/hosting-requests', [HostingRequestController::class, 'index']);
     Route::post('/hosting-requests', [HostingRequestController::class, 'store']);
     Route::delete('/hosting-requests/{id}',[HostingRequestController::class,'destory']);
 
 
+    Route::get('/hosting-requests/traveler_id/{id}',[TravelerController::class, 'getTravelerByUserId']);
 
     Route::get('/hosts', [HostController::class, 'index']);
     Route::get('/hosts/{id}', [HostController::class, 'show']); // id = user_id

@@ -3,7 +3,16 @@ import { useAuth } from "@/components/auth/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, Check, X, MapPin, User, Users, MessageCircle, Trash2 } from "lucide-react";
+import {
+  Clock,
+  Check,
+  X,
+  MapPin,
+  User,
+  Users,
+  MessageCircle,
+  Trash2,
+} from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
@@ -26,6 +35,8 @@ export const RequestsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [requests, setRequests] = useState<Request[]>([]);
+  const [acceptedRequests, setacceptedRequests] = useState<Request[]>([]);
+  const [travelerRequest, setTravelerRequest] = useState<Request[]>([]);
 
   // Modal state
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
@@ -33,12 +44,21 @@ export const RequestsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Handle accept/reject action
-  const handleRequestAction = async (hostingRequestId: number, status: "accepted" | "rejected") => {
+  const handleRequestAction = async (
+    hostingRequestId: number,
+    status: "accepted" | "rejected"
+  ) => {
     try {
-     await API.patch(`/hosting-requests/${hostingRequestId}/status`, { status });
+      await API.patch(`/hosting-requests/${hostingRequestId}/status`, { status });
 
-      // Remove request from UI
-      setRequests((prev) => prev.filter((req) => req.id !== hostingRequestId));
+      // ✅ Re-fetch both lists from backend
+      const [allRes, acceptedRes] = await Promise.all([
+        API.get(`/hosting-requests/host_id/${user.id}`),
+        API.get(`/hosting-requests/host_id/${user.id}/accepted`),
+      ]);
+
+      setRequests(allRes.data.data || []);
+      setacceptedRequests(acceptedRes.data.data || []);
 
       toast({
         title: status === "accepted" ? "Request Accepted" : "Request Rejected",
@@ -70,6 +90,12 @@ export const RequestsPage = () => {
 
       // Remove from UI
       setRequests((prev) => prev.filter((req) => req.id !== hostingRequestId));
+      setacceptedRequests((prev) =>
+        prev.filter((req) => req.id !== hostingRequestId)
+      );
+      setTravelerRequest((prev) =>
+        prev.filter((req) => req.id !== hostingRequestId)
+      );
 
       toast({
         title: "Request Deleted",
@@ -85,16 +111,45 @@ export const RequestsPage = () => {
     }
   };
 
+  // Fetch accepted requests
+  useEffect(() => {
+    const fetchRequests = async () => {
+      if (!user) return;
+      try {
+        const response = await API.get(
+          `/hosting-requests/host_id/${user.id}/accepted`
+        );
+        setacceptedRequests(response.data.data);
+      } catch (error) {
+        console.error("Failed to fetch requests", error);
+      }
+    };
+    fetchRequests();
+  }, [user]);
 
-
-  // Fetch requests for current host
+  // Fetch received requests for host
   useEffect(() => {
     const fetchRequests = async () => {
       if (!user) return;
       try {
         const response = await API.get(`/hosting-requests/host_id/${user.id}`);
-        console.log("Fetched requests:", response.data);
         setRequests(response.data.data || []);
+      } catch (error) {
+        console.error("Failed to fetch requests", error);
+      }
+    };
+    fetchRequests();
+  }, [user]);
+
+  // Fetch traveler sent requests
+  useEffect(() => {
+    const fetchRequests = async () => {
+      if (!user) return;
+      try {
+        const response = await API.get(
+          `/hosting-requests/traveler_id/${user.id}`
+        );
+        setTravelerRequest(response.data.data || []);
       } catch (error) {
         console.error("Failed to fetch requests", error);
       }
@@ -104,7 +159,7 @@ export const RequestsPage = () => {
 
   if (!user) return null;
 
-  // Request card component
+  // Request card for hosts (with Accept/Reject buttons)
   const RequestCard = ({
     request,
     onOpenModal,
@@ -114,28 +169,25 @@ export const RequestsPage = () => {
   }) => (
     <Card className="shadow-travel hover:shadow-glow transition-all duration-300 relative">
       <CardContent className="p-6 relative">
-
         <Button
-            size="sm"
-            variant="ghost"
-            className="absolute top-4 right-4 text-muted-foreground hover:text-destructive"
-            onClick={() => handleDelete(request.id)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          size="sm"
+          variant="ghost"
+          className="absolute top-4 right-4 text-muted-foreground hover:text-destructive"
+          onClick={() => handleDelete(request.id)}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
 
         <div className="flex items-start gap-4">
           <Avatar className="h-12 w-12">
             <AvatarImage src={request.traveler?.avatar} />
             <AvatarFallback>
-              {request.traveler?.name?.slice(0, 2).toUpperCase() || request.name.slice(0, 2).toUpperCase()}
+              {request.traveler?.name?.slice(0, 2).toUpperCase() ||
+                request.name.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
 
-          
           <div className="flex-1 space-y-2">
-
-
             <div className="flex items-center gap-2 text-muted-foreground">
               <User className="h-4 w-4" />
               {request.traveler?.name || request.name || "Unknown"}
@@ -156,30 +208,34 @@ export const RequestsPage = () => {
             <div className="flex items-center justify-between mt-4">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
-                {request.created_at ? format(new Date(request.created_at), "MMM d, yyyy HH:mm") : "—"}
+                {request.created_at
+                  ? format(new Date(request.created_at), "MMM d, yyyy HH:mm")
+                  : "—"}
               </div>
-              <div className="flex gap-2">
+              {request.status !== "accepted" && (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => onOpenModal("rejected")}
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Reject
+                  </Button>
 
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => onOpenModal("rejected")}
-                >
-                  <X className="h-3 w-3 mr-1" />
-                  Reject
-                </Button>
-                <Button
-                  size="sm"
-                  className="bg-success hover:bg-success/90 text-white"
-                  onClick={() => onOpenModal("accepted")}
-                >
-                  <Check className="h-3 w-3 mr-1" />
-                  Accept
-                </Button>
-
-              </div>
+                  {user.role != "user" && (
+                    <Button
+                      size="sm"
+                      className="bg-success hover:bg-success/90 text-white"
+                      onClick={() => onOpenModal("accepted")}
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      Accept
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -194,76 +250,232 @@ export const RequestsPage = () => {
           <h1 className="text-3xl font-bold bg-gradient-text bg-clip-text text-transparent">
             Hosting Requests
           </h1>
-          <p className="text-muted-foreground mt-2">Manage your hosting requests</p>
+          <p className="text-muted-foreground mt-2">
+            History your hosting requests
+          </p>
         </div>
 
-        <Tabs defaultValue="received" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-1">
-            <TabsTrigger value="received" className="flex items-center gap-2">
-              Received ({requests.length})
-            </TabsTrigger>
-          </TabsList>
+        {/* Traveler view (Sent requests) */}
+        {user.role === "user" && (
+          <Tabs defaultValue="sent" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-1">
+              <TabsTrigger value="sent" className="flex items-center gap-2">
+                Sent ({travelerRequest.length})
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="received" className="space-y-4">
-            {requests.length === 0 ? (
-              <Card className="shadow-travel">
-                <CardContent className="text-center py-12">
-                  <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">No requests received</h3>
-                  <p className="text-muted-foreground">
-                    When travelers request to stay with you, they'll appear here
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              requests.map((request) => (
-                <div key={request.id} className="relative">
-                  <RequestCard
-                    key={request.id}
-                    request={request}
-                    onOpenModal={(type) => {
-                      setSelectedRequest(request);
-                      setActionType(type);
-                      setIsModalOpen(true);
-                    }}
-                  />
+            <TabsContent value="sent" className="space-y-4">
+              {travelerRequest.length === 0 ? (
+                <Card className="shadow-travel">
+                  <CardContent className="text-center py-12">
+                    <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      No requests sent
+                    </h3>
+                    <p className="text-muted-foreground">
+                      When you request to stay with a host, they will appear here
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                travelerRequest.map((request, index) => (
+                  <div key={request.id} className="relative">
+                    <Card className="shadow-travel hover:shadow-glow transition-all duration-300 relative">
+                      <CardContent className="p-6 relative">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="absolute top-4 right-4 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDelete(request.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
 
-                  {/* Modal centered on screen */}
-                  {isModalOpen && selectedRequest?.id === request.id && (
-                    <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
-                      <div className="bg-white shadow-lg rounded-lg p-4 w-72">
-                        <h3 className="text-sm font-semibold mb-2">Are you sure?</h3>
-                        <p className="text-xs text-muted-foreground mb-3">
-                          Do you really want to {actionType} this request?
-                        </p>
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setIsModalOpen(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            size="sm"
-                            className={
-                              actionType === "accepted"
-                                ? "bg-success text-white"
-                                : "text-destructive border border-destructive text-white"
-                            }
-                            onClick={confirmAction}
-                          >
-                            {actionType === "accepted" ? "Accept" : "Reject"}
-                          </Button>
+                        <div className="flex items-start gap-4">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src={request.traveler?.avatar} />
+                            <AvatarFallback>
+                              {request.traveler?.name?.slice(0, 2).toUpperCase() ||
+                                request.name.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <User className="h-4 w-4" />
+                              {request.traveler?.name || request.name || "Unknown"}
+                            </div>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <MapPin className="h-4 w-4" />
+                              {request.location}
+                            </div>
+
+                            {/* ✅ Removed guests + message */}
+
+                            <div className="flex items-center justify-between mt-4">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Clock className="h-3 w-3" />
+                                {request.created_at
+                                  ? format(
+                                      new Date(request.created_at),
+                                      "MMM d, yyyy HH:mm"
+                                    )
+                                  : "—"}
+                              </div>
+                              {/* ❌ No Reject/Accept buttons for traveler */}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {/* Host view (Received/Accepted requests) */}
+        {user.role != "user" && (
+          <Tabs defaultValue="received" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="received" className="flex items-center gap-2">
+                Received ({requests.length})
+              </TabsTrigger>
+              <TabsTrigger value="accepted" className="flex items-center gap-2">
+                Accepted ({acceptedRequests.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="received" className="space-y-4">
+              {requests.length === 0 ? (
+                <Card className="shadow-travel">
+                  <CardContent className="text-center py-12">
+                    <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      No requests received
+                    </h3>
+                    <p className="text-muted-foreground">
+                      When travelers request to stay with you, they'll appear
+                      here
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                requests.map((request) => (
+                  <div key={request.id} className="relative">
+                    <RequestCard
+                      key={request.id}
+                      request={request}
+                      onOpenModal={(type) => {
+                        setSelectedRequest(request);
+                        setActionType(type);
+                        setIsModalOpen(true);
+                      }}
+                    />
+
+                    {isModalOpen && selectedRequest?.id === request.id && (
+                      <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
+                        <div className="bg-white shadow-lg rounded-lg p-4 w-72">
+                          <h3 className="text-sm font-semibold mb-2">
+                            Are you sure?
+                          </h3>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            Do you really want to {actionType} this request?
+                          </p>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsModalOpen(false)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              className={
+                                actionType === "accepted"
+                                  ? "bg-success text-white"
+                                  : "text-destructive border border-destructive text-white"
+                              }
+                              onClick={confirmAction}
+                            >
+                              {actionType === "accepted" ? "Accept" : "Reject"}
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </TabsContent>
-        </Tabs>
+                    )}
+                  </div>
+                ))
+              )}
+            </TabsContent>
+
+            <TabsContent value="accepted" className="space-y-4">
+              {acceptedRequests.length === 0 ? (
+                <Card className="shadow-travel">
+                  <CardContent className="text-center py-12">
+                    <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      No requests received
+                    </h3>
+                    <p className="text-muted-foreground">
+                      When travelers request to stay with you, they'll appear
+                      here
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                acceptedRequests.map((request) => (
+                  <div key={request.id} className="relative">
+                    <RequestCard
+                      key={request.id}
+                      request={request}
+                      onOpenModal={(type) => {
+                        setSelectedRequest(request);
+                        setActionType(type);
+                        setIsModalOpen(true);
+                      }}
+                    />
+
+                    {isModalOpen && selectedRequest?.id === request.id && (
+                      <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
+                        <div className="bg-white shadow-lg rounded-lg p-4 w-72">
+                          <h3 className="text-sm font-semibold mb-2">
+                            Are you sure?
+                          </h3>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            Do you really want to {actionType} this request?
+                          </p>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsModalOpen(false)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              className={
+                                actionType === "accepted"
+                                  ? "bg-success text-white"
+                                  : "text-destructive border border-destructive text-white"
+                              }
+                              onClick={confirmAction}
+                            >
+                              {actionType === "accepted" ? "Accept" : "Reject"}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </div>
   );
