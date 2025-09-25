@@ -31,16 +31,13 @@ class HostingListing extends Model
         return $this->belongsTo(\App\Models\User::class);
     }
 
-    // Relation with HomeImages (multiple images of property)
-    public function homeImages()
-    {
-        return $this->hasMany(HomeImages::class, 'hosting_listing_id');
-    }
 
-
-    public function hostImage()
+public function hostImage()
 {
     return $this->hasOne(HostingImage::class, 'hosting_listing_id');
 }
-
+public function homeImages()
+{
+    return $this->hasMany(HostingImage::class, 'hosting_listing_id');
+}
 }

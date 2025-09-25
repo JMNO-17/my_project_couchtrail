@@ -17,25 +17,36 @@ class UserController extends Controller
     }
 
     // GET /api/users/{id}
-   public function show($id)
-    {
-        // $user = User::select('id', 'name', 'email', 'avatar', 'role', 'created_at')->find($id);
-        $user = User::find($id);
+  public function show($id)
+{
+    $user = User::find($id);
 
-        if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
-        }
-
-        $hostlistings = HostingListing::where('user_id',$user->id)->first();
-
-        $hostimage = HostingImage::where('hosting_listing_id',$hostlistings->id)->first();
-
-        $user->image = $hostimage
-            ? asset('storage/' . $hostimage->image_path)
-            : null;;
-
-        return response()->json($user);
+    if (!$user) {
+        return response()->json(['message' => 'User not found'], 404);
     }
+
+    // Get the user's (first) hosting listing
+    $listing = HostingListing::where('user_id', $user->id)->first();
+
+    // Collect all images for that listing as full URLs
+    $images = [];
+    if ($listing) {
+        $images = HostingImage::where('hosting_listing_id', $listing->id)
+            ->get()
+            ->map(fn ($img) => asset('storage/' . ltrim($img->image_path, '/')))
+            ->values()
+            ->all();
+    }
+
+    // Always return an array
+    $user->images = $images;
+
+    // (Optional) keep legacy single image for existing frontends
+    $user->image = $images[0] ?? null;
+
+    return response()->json($user);
+}
+
     // PATCH /api/users/{id}/toggle-active
     public function toggleActive($id)
 {

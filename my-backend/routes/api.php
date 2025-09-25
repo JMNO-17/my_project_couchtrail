@@ -42,7 +42,7 @@ Route::group(['middleware' => 'auth:api'], function () {
 
 
     Route::get('/hosting-requests/traveler_id/{id}',[TravelerController::class, 'getTravelerByUserId']);
-
+    Route::get('/traveler/user_id/{id}',[TravelerController::class, 'getTravelerByUid']);
     Route::get('/hosts', [HostController::class, 'index']);
     Route::get('/hosts/{id}', [HostController::class, 'show']); // id = user_id
     Route::post('/hosts', [HostController::class, 'store']);
@@ -65,5 +65,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/reviews', [ReviewController::class, 'index']);
 
     Route::get('/hosting-listings/user/{id}', [HostingListingController::class, 'getHostingByUserId']);
+
+
 });
 

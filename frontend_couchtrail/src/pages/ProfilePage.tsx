@@ -26,7 +26,7 @@ type HostingInfo = {
   max_guests: number;
   amenities: string;
   additional_details: string;
-  is_available: string;
+  is_available: number;
   images?: HostingImage[];
 };
 
@@ -73,6 +73,7 @@ export const ProfilePage = () => {
         setIsLoading(false);
       }
     };
+
 
     const getLocation = () => {
       if (navigator.geolocation) {
@@ -185,9 +186,9 @@ export const ProfilePage = () => {
             </Card>
           ) : hostData ? (
             <Card className="shadow-md rounded-xl p-6 space-y-4">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
+              {/* <div className="flex items-center justify-between gap-2 flex-wrap">
                 {hostData.images && hostData.images.length > 0 ? (
-                  hostData.images.map((img) => (
+                  hostData.host_image.image_path.map((img) => (
                     <img
                       key={img.id}
                       src={img.image_path}
@@ -198,7 +199,14 @@ export const ProfilePage = () => {
                 ) : (
                   <span className="text-muted-foreground">No images available</span>
                 )}
-              </div>
+              </div> */}
+
+                <img
+                      key={hostData.host_image.id}
+                      src={hostData.host_image.image_path}
+                      alt="Hosting"
+                      className="w-20 h-20 object-cover rounded"
+                    />
 
               <h3 className="text-lg font-semibold text-center">Hosting Information</h3>
 
@@ -229,7 +237,7 @@ export const ProfilePage = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Status: </span>
-                  {hostData.is_available === 'active' ? (
+                  {hostData.is_available === true ? (
                     <Badge variant="outline" className="text-green-700 border-green-700">Active</Badge>
                   ) : (
                     <Badge variant="outline" className="text-red-700 border-red-700">Inactive</Badge>

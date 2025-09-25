@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import API from '@/api';
+import { Switch } from '@/components/ui/switch';
 
 import {
   Home,
@@ -32,10 +33,9 @@ export const HostingPage = () => {
     additional_details: '',
     amenities: [] as string[],
     max_guests: '1',
-    is_available: '',
-    // images: [] as File[],
-    profileImage: null,
-    homeImages: [],
+    is_available: false, // ⬅️ switched to boolean and controlled by Switch
+    profileImage: null as File | null,
+    homeImages: [] as File[],
   });
 
   const amenityOptions = [
@@ -53,15 +53,6 @@ export const HostingPage = () => {
         ? prev.amenities.filter((a) => a !== amenityId)
         : [...prev.amenities, amenityId],
     }));
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFormData((prev) => ({
-        ...prev,
-        images: Array.from(e.target.files),
-      }));
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,14 +74,17 @@ export const HostingPage = () => {
       data.append('max_guests', formData.max_guests);
       data.append('amenities', formData.amenities.join(','));
       data.append('additional_details', formData.additional_details);
-      data.append('is_available', formData.is_available);
-      data.append('profile_image', formData.profileImage);
-      // data.append('host_images', formData.host_images);
+      // backend expects 1/0 – convert boolean from Switch
+      data.append('is_available', formData.is_available ? '1' : '0');
+      if (formData.profileImage) data.append('profile_image', formData.profileImage);
+
+      // If you want to send home images as an array:
+      // formData.homeImages.forEach((file) => data.append('home_images[]', file));
 
       const response = await API.post('/hosting-listings', data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      console.log(response.data.error);
+      console.log(response.data?.error);
 
       toast({
         title: 'Hosting Profile Created!',
@@ -98,7 +92,6 @@ export const HostingPage = () => {
       });
 
       navigate('/profile');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -139,7 +132,6 @@ export const HostingPage = () => {
                 <Label>Profile Image</Label>
                 <div className="flex flex-col items-center">
                   <div className="relative w-32 h-32">
-                    {/* Preview or default circle */}
                     {formData.profileImage ? (
                       <img
                         src={URL.createObjectURL(formData.profileImage)}
@@ -152,7 +144,6 @@ export const HostingPage = () => {
                       </div>
                     )}
 
-                    {/* Hidden input */}
                     <input
                       type="file"
                       accept="image/*"
@@ -162,13 +153,12 @@ export const HostingPage = () => {
                         if (e.target.files && e.target.files[0]) {
                           setFormData((prev) => ({
                             ...prev,
-                            profileImage: e.target.files[0],
+                            profileImage: e.target.files![0],
                           }));
                         }
                       }}
                     />
 
-                    {/* Upload button overlay */}
                     <label
                       htmlFor="profile-upload"
                       className="absolute bottom-1 right-1 bg-blue-500 text-white rounded-full p-2 cursor-pointer hover:bg-blue-600 transition"
@@ -177,7 +167,6 @@ export const HostingPage = () => {
                     </label>
                   </div>
 
-                  {/* Remove button */}
                   {formData.profileImage && (
                     <button
                       type="button"
@@ -231,7 +220,6 @@ export const HostingPage = () => {
                   className="mt-1"
                 />
               </div>
-
             </CardContent>
           </Card>
 
@@ -281,25 +269,33 @@ export const HostingPage = () => {
                   id="additional_details"
                   placeholder="Share any house rules, nearby attractions, or other helpful information for guests..."
                   value={formData.additional_details}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, additional_details: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, additional_details: e.target.value }))
+                  }
                   className="mt-1 min-h-[100px]"
                 />
               </div>
 
-              <div>
-                <Label htmlFor="is_available">is_available</Label>
-                <Input
-                  id="is_available"
-                  placeholder="Are you available to host? Write 1 or 0."
-                  value={formData.is_available}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, is_available: e.target.value }))
-                  }
-                  className="mt-1"
-                />
+              {/* is_available Switch (replaces 1/0 input) */}
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="space-y-0.5">
+                  <Label className="text-base">Available to host</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Toggle on if you’re currently accepting stay requests.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm">{formData.is_available ? 'Yes' : 'No'}</span>
+                  <Switch
+                    checked={formData.is_available}
+                    onCheckedChange={(checked) =>
+                      setFormData((prev) => ({ ...prev, is_available: checked }))
+                    }
+                  />
+                </div>
               </div>
 
-
+              {/* Home Images Uploader */}
               <div className="space-y-2">
                 <Label>Upload Your Home Images</Label>
                 <div
@@ -308,7 +304,7 @@ export const HostingPage = () => {
                   onDrop={(e) => {
                     e.preventDefault();
                     const droppedFiles = Array.from(e.dataTransfer.files).filter((file) =>
-                      file.type.startsWith("image/")
+                      file.type.startsWith('image/')
                     );
                     if (droppedFiles.length > 0) {
                       setFormData((prev) => ({
@@ -370,9 +366,6 @@ export const HostingPage = () => {
                   )}
                 </div>
               </div>
-
-
-
             </CardContent>
           </Card>
 

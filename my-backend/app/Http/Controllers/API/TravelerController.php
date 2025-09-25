@@ -39,6 +39,27 @@ class TravelerController extends Controller
         return $traveler;
     }
 
+//     public function show($id)
+// {
+//     // $id here is a USER ID
+//     $traveler = Traveler::where('user_id', $id)->first();
+
+//     if (!$traveler) {
+//         return response()->json(['message' => 'Traveler not found'], 404);
+//     }
+
+//     // FIX: use $traveler->user_id (not $traveler->id)
+//     $user = User::where("id", $traveler->user_id)->first();
+
+//     // In case user could not be found (unlikely if FK ok)
+//     if ($user) {
+//         $traveler->email = $user->email;
+//     }
+
+//     return $traveler;
+// }
+
+
     public function store(Request $request)
     {
         $user = auth()->guard('api')->user();
@@ -93,4 +114,13 @@ class TravelerController extends Controller
     ]);
 }
 
+
+public function getTravelerByUid($id)
+{
+    return Traveler::where('user_id', $id)->first();
 }
+
+}
+
+
+
