@@ -1,3 +1,4 @@
+// src/pages/RequestsPage.tsx
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,36 +16,57 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
+// ✅ Use shadcn avatar wrapper, not raw Radix
+
 import API from "../api";
+import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
+
+type RequestStatus = "pending" | "accepted" | "rejected";
+
+interface Party {
+  name: string;
+  avatar?: string;
+  region?: string;
+}
 
 interface Request {
   id: number;
   host_id: number;
+  // For traveler "Sent" view we prefer host info:
+  host?: Party;
+  // For host views we may get traveler info:
+  traveler?: Party;
+
+  // Fallbacks from backend
   name: string;
-  traveler?: { name: string; avatar?: string; region?: string };
   location: string;
   date: string;
   created_at: string;
   number_of_guests: number;
-  status: "pending" | "accepted" | "rejected";
+  status: RequestStatus;
   message: string;
 }
 
+// --- Role helpers ------------------------------------------------------------
+const isTravelerRole = (u: any) =>
+  u?.role === "traveler" || u?.role === "user" || u?.roles?.includes?.("traveler");
+
+const isHostRole = (u: any) =>
+  u?.role === "host" || u?.roles?.includes?.("host");
+
 export const RequestsPage = () => {
-  // ✅ Get user and isLoading status
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
-  const [requests, setRequests] = useState<Request[]>([]); // Host: Received
-  const [acceptedRequests, setacceptedRequests] = useState<Request[]>([]); // Host: Accepted
-  const [travelerRequest, setTravelerRequest] = useState<Request[]>([]); // Traveler: Sent
 
-  // Modal state
+  const [requests, setRequests] = useState<Request[]>([]); // Host: Received
+  const [acceptedRequests, setAcceptedRequests] = useState<Request[]>([]); // Host: Accepted
+  const [travelerRequests, setTravelerRequests] = useState<Request[]>([]); // Traveler: Sent
+
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [actionType, setActionType] = useState<"accepted" | "rejected">();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Handle accept/reject action
+  // --- Actions ---------------------------------------------------------------
   const handleRequestAction = async (
     hostingRequestId: number,
     status: "accepted" | "rejected"
@@ -52,15 +74,15 @@ export const RequestsPage = () => {
     try {
       await API.patch(`/hosting-requests/${hostingRequestId}/status`, { status });
 
-      // Re-fetch both lists from backend for host
-      const [allRes, acceptedRes] = await Promise.all([
-        API.get(`/hosting-requests/host_id/${user.id}`),
-        API.get(`/hosting-requests/host_id/${user.id}/accepted`),
-      ]);
-
-      setRequests(allRes.data.data || []);
-      setacceptedRequests(acceptedRes.data.data || []);
-
+      if (user && isHostRole(user)) {
+        const [allRes, acceptedRes] = await Promise.all([
+          API.get(`/hosting-requests/host_id/${user.id}`),
+          API.get(`/hosting-requests/host_id/${user.id}/accepted`),
+        ]);
+        setRequests(allRes.data.data || []);
+        setAcceptedRequests(acceptedRes.data.data || []);
+      }
+      console.log(requests);
       toast({
         title: status === "accepted" ? "Request Accepted" : "Request Rejected",
         description: `You have ${status} the hosting request.`,
@@ -84,17 +106,15 @@ export const RequestsPage = () => {
     }
   };
 
-  // Delete request completely
   const handleDelete = async (hostingRequestId: number) => {
     try {
       await API.delete(`/hosting-requests/${hostingRequestId}`);
 
-      // Remove from UI
       setRequests((prev) => prev.filter((req) => req.id !== hostingRequestId));
-      setacceptedRequests((prev) =>
+      setAcceptedRequests((prev) =>
         prev.filter((req) => req.id !== hostingRequestId)
       );
-      setTravelerRequest((prev) =>
+      setTravelerRequests((prev) =>
         prev.filter((req) => req.id !== hostingRequestId)
       );
 
@@ -112,56 +132,99 @@ export const RequestsPage = () => {
     }
   };
 
-  // Fetch accepted requests for host
+  // --- Data fetching ---------------------------------------------------------
+  // Host: accepted
   useEffect(() => {
-    const fetchRequests = async () => {
-      // ✅ Check for 'traveler' role
-      if (!user || user.role === "traveler") return; 
+    if (!user || !isHostRole(user)) return;
+    (async () => {
       try {
         const response = await API.get(
           `/hosting-requests/host_id/${user.id}/accepted`
         );
-        setacceptedRequests(response.data.data || []);
+        setAcceptedRequests(response.data.data || []);
       } catch (error) {
         console.error("Failed to fetch accepted requests", error);
       }
-    };
-    fetchRequests();
-  }, [user]);
+    })();
+  }, [user?.id, user?.role]);
 
-  // Fetch received requests for host
+  // Host: received
   useEffect(() => {
-    const fetchRequests = async () => {
-      // ✅ Check for 'traveler' role
-      if (!user || user.role === "traveler") return; 
+    if (!user || !isHostRole(user)) return;
+    (async () => {
       try {
         const response = await API.get(`/hosting-requests/host_id/${user.id}`);
         setRequests(response.data.data || []);
       } catch (error) {
         console.error("Failed to fetch received requests", error);
       }
-    };
-    fetchRequests();
-  }, [user]);
+    })();
+  }, [user?.id, user?.role]);
 
-  // Fetch traveler sent requests
-  useEffect(() => {
-    const fetchRequests = async () => {
-      // ✅ Check for 'traveler' role
-      if (!user || user.role !== "traveler") return; 
-      try {
-        const response = await API.get(
-          `/hosting-requests/traveler_id/${user.id}`
-        );
-        setTravelerRequest(response.data.data || []);
-      } catch (error) {
-        console.error("Failed to fetch traveler requests", error);
-      }
-    };
-    fetchRequests();
-  }, [user]);
+  // Traveler: sent
+  // useEffect(() => {
+  //   // if (!user || !isTravelerRole(user)) return;
+  //   (async () => {
+  //     try {
+  //       const response = await API.get(
+  //         `/hosting-requests/traveler_id/${user.id}`
+  //       );
+  //       // If your backend doesn't send host info, the UI will fallback to 'name'
+  //       setTravelerRequests(response.data.data || []);
+     
+  //     } catch (error) {
+  //       console.error("Failed to fetch traveler requests", error);
+  //     }
+  //   })();
+  // }, [user?.id, user?.role]);
 
-  // ✅ GUARD CLAUSE: Show Loading State while user is being determined
+  //   console.log(travelerRequests)
+
+  // Traveler: sent
+useEffect(() => {
+  if (!user || !isTravelerRole(user)) return;
+  (async () => {
+    try {
+      const res = await API.get(`/hosting-requests/traveler_id/${user.id}`);
+      const d = res?.data?.data;
+
+      // Normalize API → UI Request[]
+      const rawList = Array.isArray(d) ? d : d ? [d] : [];
+      const normalized: Request[] = rawList.map((item: any) => ({
+        // Use the request id for card actions; fall back to listing id if needed
+        id: item.request_id ?? item.id,
+        host_id: item.user_id,
+
+        // Host block (only name available now)
+        host: { name: item.name },
+
+        // UI fallbacks
+        name: item.name, // fallback if host?.name missing
+        location: item.address ?? "",
+
+        // Dates: prefer requested_at from request, else created_at
+        date: item.requested_at ?? item.created_at,
+        created_at: item.requested_at ?? item.created_at,
+
+        // Status/message from request_*
+        status: (item.request_status ?? "pending") as RequestStatus,
+        message: item.request_message ?? "",
+
+        // Not provided by API → choose a sensible default
+        number_of_guests: item.number_of_guests ?? 1,
+      }));
+
+      setTravelerRequests(normalized);
+    } catch (error) {
+      console.error("Failed to fetch traveler requests", error);
+      setTravelerRequests([]);
+    }
+  })();
+}, [user?.id, user?.role]);
+
+
+
+  // --- Loading guard ---------------------------------------------------------
   if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -173,10 +236,10 @@ export const RequestsPage = () => {
     );
   }
 
-  // ✅ Dynamic Default Tab Determination (only runs after user is loaded)
-  const defaultTab = user.role === "traveler" ? "sent" : "received";
+  const defaultTab = isTravelerRole(user) ? "sent" : "received";
 
-  // Request card for hosts (with Accept/Reject buttons)
+  // --- Cards -----------------------------------------------------------------
+  // Host-side card (shows traveler, actions)
   const RequestCard = ({
     request,
     onOpenModal,
@@ -191,6 +254,7 @@ export const RequestsPage = () => {
           variant="ghost"
           className="absolute top-4 right-4 text-muted-foreground hover:text-destructive"
           onClick={() => handleDelete(request.id)}
+          title="Delete request"
         >
           <Trash2 className="h-4 w-4" />
         </Button>
@@ -199,8 +263,9 @@ export const RequestsPage = () => {
           <Avatar className="h-12 w-12">
             <AvatarImage src={request.traveler?.avatar} />
             <AvatarFallback>
-              {request.traveler?.name?.slice(0, 2).toUpperCase() ||
-                request.name.slice(0, 2).toUpperCase()}
+              {(request.traveler?.name || request.name || "??")
+                .slice(0, 2)
+                .toUpperCase()}
             </AvatarFallback>
           </Avatar>
 
@@ -209,18 +274,23 @@ export const RequestsPage = () => {
               <User className="h-4 w-4" />
               {request.traveler?.name || request.name || "Unknown"}
             </div>
+
             <div className="flex items-center gap-2 text-muted-foreground">
               <MapPin className="h-4 w-4" />
               {request.location}
             </div>
+
             <div className="flex items-center gap-2 text-muted-foreground">
               <Users className="h-4 w-4" />
               {request.number_of_guests} guests
             </div>
-            <div className="flex items-start gap-2 text-muted-foreground">
-              <MessageCircle className="h-4 w-4 mt-1" />
-              <p className="text-sm">{request.message}</p>
-            </div>
+
+            {request.message && (
+              <div className="flex items-start gap-2 text-muted-foreground">
+                <MessageCircle className="h-4 w-4 mt-1" />
+                <p className="text-sm">{request.message}</p>
+              </div>
+            )}
 
             <div className="flex items-center justify-between mt-4">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -229,6 +299,7 @@ export const RequestsPage = () => {
                   ? format(new Date(request.created_at), "MMM d, yyyy HH:mm")
                   : "—"}
               </div>
+
               {request.status !== "accepted" && (
                 <div className="flex gap-2">
                   <Button
@@ -241,7 +312,7 @@ export const RequestsPage = () => {
                     Reject
                   </Button>
 
-                  {user.role !== "traveler" && ( // ✅ Check for 'traveler' role
+                  {isHostRole(user) && (
                     <Button
                       size="sm"
                       className="bg-green-500 hover:bg-green-600 text-white"
@@ -260,6 +331,90 @@ export const RequestsPage = () => {
     </Card>
   );
 
+  // Traveler-side card (shows host, status pill)
+  const TravelerSentCard = ({ request }: { request: Request }) => {
+    // const hostName = request.host?.name || request.name || "Host";
+    const travelerName = request?.name || request.name || "Host";
+    const hostAvatar = request.host?.avatar;
+    const hostRegion = request.host?.region;
+
+    const statusStyles: Record<RequestStatus, string> = {
+      accepted: "bg-green-100 text-green-700 ring-green-200",
+      rejected: "bg-red-100 text-red-700 ring-red-200",
+      pending: "bg-amber-100 text-amber-700 ring-amber-200",
+    };
+
+    console.log(request);
+
+    return (
+      <Card className="shadow-travel hover:shadow-glow transition-all duration-300 relative">
+        <CardContent className="p-6 relative">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="absolute top-4 right-4 text-muted-foreground hover:text-destructive"
+            onClick={() => handleDelete(request.id)}
+            title="Delete request"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+
+          <div className="flex items-start gap-4">
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={hostAvatar} />
+              <AvatarFallback>{travelerName.slice(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{travelerName}</span>
+                <span
+                  className={`ml-2 text-xs px-2 py-0.5 rounded-full ring-1 ${statusStyles[request.status]}`}
+                >
+                  {request.status[0].toUpperCase() + request.status.slice(1)}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                <span>{request.location}</span>
+                {hostRegion && <span className="text-xs">• {hostRegion}</span>}
+              </div>
+
+              {request.message && (
+                <div className="flex items-start gap-2 text-muted-foreground">
+                  <MessageCircle className="h-4 w-4 mt-1" />
+                  <p className="text-sm">{request.message}</p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between mt-4">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  {request.created_at
+                    ? format(new Date(request.created_at), "MMM d, yyyy HH:mm")
+                    : "—"}
+                </div>
+                {/* Optional: allow cancel while pending
+                {request.status === "pending" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDelete(request.id)}
+                  >
+                    Cancel
+                  </Button>
+                )} */}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // --- Render ---------------------------------------------------------------
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 p-4">
       <div className="max-w-4xl mx-auto">
@@ -273,16 +428,17 @@ export const RequestsPage = () => {
         </div>
 
         {/* Traveler view (Sent requests) */}
-        {user.role === "traveler" && ( // ✅ Check for 'traveler' role
+
+        {isTravelerRole(user) && (
           <Tabs defaultValue={defaultTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-1">
               <TabsTrigger value="sent" className="flex items-center gap-2">
-                Sent ({travelerRequest.length})
+                Sent ({travelerRequests.length})
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="sent" className="space-y-4">
-              {travelerRequest.length === 0 ? (
+              {travelerRequests.length === 0 ? (
                 <Card className="shadow-travel">
                   <CardContent className="text-center py-12">
                     <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -290,75 +446,14 @@ export const RequestsPage = () => {
                       No requests sent
                     </h3>
                     <p className="text-muted-foreground">
-                      When you request to stay with a host, they will appear here
+                      When you request to stay with a host, they will appear here.
                     </p>
                   </CardContent>
                 </Card>
               ) : (
-                travelerRequest.map((request) => (
+                travelerRequests.map((request) => (
                   <div key={request.id} className="relative">
-                    <Card className="shadow-travel hover:shadow-glow transition-all duration-300 relative">
-                      <CardContent className="p-6 relative">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="absolute top-4 right-4 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDelete(request.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-
-                        <div className="flex items-start gap-4">
-                          <Avatar className="h-12 w-12">
-                            <AvatarImage src={request.traveler?.avatar} />
-                            <AvatarFallback>
-                              {request.traveler?.name?.slice(0, 2).toUpperCase() ||
-                                request.name.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-
-                          <div className="flex-1 space-y-2">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <User className="h-4 w-4" />
-                              {request.traveler?.name || request.name || "Unknown"}
-                            </div>
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <MapPin className="h-4 w-4" />
-                              {request.location}
-                            </div>
-                            {/* Status indicator for traveler */}
-                            <div className="text-sm font-medium">
-                              Status:{" "}
-                              <span
-                                className={
-                                  request.status === "accepted"
-                                    ? "text-green-500"
-                                    : request.status === "rejected"
-                                    ? "text-red-500"
-                                    : "text-amber-500"
-                                }
-                              >
-                                {request.status.charAt(0).toUpperCase() +
-                                  request.status.slice(1)}
-                              </span>
-                            </div>
-
-
-                            <div className="flex items-center justify-between mt-4">
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Clock className="h-3 w-3" />
-                                {request.created_at
-                                  ? format(
-                                      new Date(request.created_at),
-                                      "MMM d, yyyy HH:mm"
-                                    )
-                                  : "—"}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <TravelerSentCard request={request} />
                   </div>
                 ))
               )}
@@ -367,7 +462,7 @@ export const RequestsPage = () => {
         )}
 
         {/* Host view (Received/Accepted requests) */}
-        {user.role !== "traveler" && (
+        {!isTravelerRole(user) && (
           <Tabs defaultValue={defaultTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="received" className="flex items-center gap-2">
@@ -387,8 +482,7 @@ export const RequestsPage = () => {
                       No requests received
                     </h3>
                     <p className="text-muted-foreground">
-                      When travelers request to stay with you, they'll appear
-                      here
+                      When travelers request to stay with you, they'll appear here
                     </p>
                   </CardContent>
                 </Card>
@@ -439,36 +533,34 @@ export const RequestsPage = () => {
 
         {/* Confirmation Modal */}
         {isModalOpen && selectedRequest && actionType && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
-                <div className="bg-white shadow-lg rounded-lg p-4 w-72">
-                <h3 className="text-sm font-semibold mb-2">
-                    Are you sure?
-                </h3>
-                <p className="text-xs text-muted-foreground mb-3">
-                    Do you really want to {actionType} this request?
-                </p>
-                <div className="flex justify-end gap-2">
-                    <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsModalOpen(false)}
-                    >
-                    Cancel
-                    </Button>
-                    <Button
-                    size="sm"
-                    className={
-                        actionType === "accepted"
-                            ? "bg-green-500 hover:bg-green-600 text-white"
-                            : "bg-red-500 hover:bg-red-600 text-white"
-                    }
-                    onClick={confirmAction}
-                    >
-                    {actionType === "accepted" ? "Accept" : "Reject"}
-                    </Button>
-                </div>
-                </div>
+          <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
+            <div className="bg-white shadow-lg rounded-lg p-4 w-72">
+              <h3 className="text-sm font-semibold mb-2">Are you sure?</h3>
+              <p className="text-xs text-muted-foreground mb-3">
+                Do you really want to {actionType} this request?
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className={
+                    actionType === "accepted"
+                      ? "bg-green-500 hover:bg-green-600 text-white"
+                      : "bg-red-500 hover:bg-red-600 text-white"
+                  }
+                  onClick={confirmAction}
+                >
+                  {actionType === "accepted" ? "Accept" : "Reject"}
+                </Button>
+              </div>
             </div>
+          </div>
         )}
       </div>
     </div>

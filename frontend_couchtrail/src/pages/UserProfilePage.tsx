@@ -66,10 +66,10 @@ const [guestError, setGuestError] = useState<string>('');
       try {
         const [userRes, travelerRes, reviewRes] = await Promise.all([
           API.get(`/users/${userId}`),
-          API.get(`/traveler/user_id/${userId}`),
+          API.get(`/traveler/user_id/${user.id}`),
           API.get(`/reviews`, { params: { reviewed_id: userId } })
         ]);
-
+        console.log('user id here',userId)
 
         const host = await API.get(`/hosting-listings/user/${userId}`);
 
@@ -260,6 +260,8 @@ const handleSendRequest = async () => {
         : 1,
       status: requestData.status ? String(requestData.status).trim() : 'pending',
     };
+
+    console.log();
 
     console.log('payload', payload);
 

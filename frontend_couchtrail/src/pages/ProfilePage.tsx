@@ -12,10 +12,11 @@ import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 import API from "@/api/index";
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 
 interface HostingImage {
   id: number;
-  image_path: string; // ✅ fixed key
+  image_path: string;
 }
 
 type HostingInfo = {
@@ -26,8 +27,11 @@ type HostingInfo = {
   max_guests: number;
   amenities: string;
   additional_details: string;
+  // API sends 0/1 or boolean; we store as number 0/1 for your existing code
   is_available: number;
   images?: HostingImage[];
+  // @ts-ignore
+  host_image?: { id: number; image_path: string };
 };
 
 export const ProfilePage = () => {
@@ -37,6 +41,7 @@ export const ProfilePage = () => {
   const [hostData, setHostData] = useState<HostingInfo | null>(null);
   const [userLocation, setUserLocation] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
 
   if (!user) return null;
 
@@ -52,10 +57,7 @@ export const ProfilePage = () => {
       {[1, 2, 3, 4, 5].map((star) => (
         <Star
           key={star}
-          className={`h-4 w-4 ${star <= rating
-            ? 'fill-yellow-400 text-yellow-400'
-            : 'text-muted-foreground'
-            }`}
+          className={`h-4 w-4 ${star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`}
         />
       ))}
     </div>
@@ -66,14 +68,13 @@ export const ProfilePage = () => {
       try {
         setIsLoading(true);
         const response = await API.get<HostingInfo[]>('/hosting-listings');
-        setHostData(response.data && response.data.length > 0 ? response.data[0] : null);
+        setHostData(response.data && (response.data as any).length > 0 ? (response.data as any)[0] : null);
       } catch (err) {
         console.log(err);
       } finally {
         setIsLoading(false);
       }
     };
-
 
     const getLocation = () => {
       if (navigator.geolocation) {
@@ -103,6 +104,36 @@ export const ProfilePage = () => {
     getLocation();
     fetchHostingInfo();
   }, []);
+
+  // Toggle: call server /toggle, update from server response (robust to "0"/"1" or boolean)
+  const toggleAvailability = async () => {
+    if (!hostData) return;
+    setIsToggling(true);
+
+    // optimistic flip
+    setHostData(prev => (prev ? { ...prev, is_available: prev.is_available ? 0 : 1 } : prev));
+
+    try {
+      const res = await API.patch(`/hosting-listings/${hostData.id}/toggle`);
+      const payload = (res?.data?.data ?? res?.data ?? {}) as any;
+      const raw = payload.is_available ?? payload.isAvailable;
+
+      const isOn =
+        typeof raw === 'boolean' ? raw :
+        typeof raw === 'number'  ? raw === 1 :
+        typeof raw === 'string'  ? Number(raw) === 1 :
+        Boolean(raw);
+
+      // set from server as source of truth
+      setHostData(prev => (prev ? { ...prev, is_available: isOn ? 1 : 0 } : prev));
+    } catch (err) {
+      console.error('Failed to toggle availability', err);
+      // revert optimistic flip
+      setHostData(prev => (prev ? { ...prev, is_available: prev.is_available ? 0 : 1 } : prev));
+    } finally {
+      setIsToggling(false);
+    }
+  };
 
   const deleteHost = async (id: number) => {
     try {
@@ -186,27 +217,14 @@ export const ProfilePage = () => {
             </Card>
           ) : hostData ? (
             <Card className="shadow-md rounded-xl p-6 space-y-4">
-              {/* <div className="flex items-center justify-between gap-2 flex-wrap">
-                {hostData.images && hostData.images.length > 0 ? (
-                  hostData.host_image.image_path.map((img) => (
-                    <img
-                      key={img.id}
-                      src={img.image_path}
-                      alt="Hosting"
-                      className="w-20 h-20 object-cover rounded"
-                    />
-                  ))
-                ) : (
-                  <span className="text-muted-foreground">No images available</span>
-                )}
-              </div> */}
-
+              {hostData?.host_image && (
                 <img
-                      key={hostData.host_image.id}
-                      src={hostData.host_image.image_path}
-                      alt="Hosting"
-                      className="w-20 h-20 object-cover rounded"
-                    />
+                  key={hostData.host_image.id}
+                  src={hostData.host_image.image_path}
+                  alt="Hosting"
+                  className="w-20 h-20 object-cover rounded"
+                />
+              )}
 
               <h3 className="text-lg font-semibold text-center">Hosting Information</h3>
 
@@ -235,14 +253,22 @@ export const ProfilePage = () => {
                   <span className="font-medium">Max Guests: </span>
                   <span className="text-muted-foreground">{hostData.max_guests}</span>
                 </div>
+
+                {/* Status row with Switch (replaces badge) */}
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">Status: </span>
-                  {hostData.is_available === true ? (
-                    <Badge variant="outline" className="text-green-700 border-green-700">Active</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-red-700 border-red-700">Inactive</Badge>
-                  )}
+                  <span className="font-medium">Status:</span>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={Boolean(hostData.is_available)}
+                      onCheckedChange={() => toggleAvailability()}
+                      disabled={isToggling}
+                    />
+                    <span className={Boolean(hostData.is_available) ? "text-green-700" : "text-red-700"}>
+                      {Boolean(hostData.is_available) ? "Active" : "Inactive"}
+                    </span>
+                  </div>
                 </div>
+
                 <div>
                   <span className="font-medium">Amenities: </span>
                   <span className="text-muted-foreground">{hostData.amenities}</span>

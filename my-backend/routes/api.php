@@ -35,6 +35,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/hosting-requests/{id}', [HostingRequestController::class, 'show']);
     Route::get('/hosting-requests/host_id/{id}',[HostingRequestController::class, 'getRequestByHostId']);
     Route::get('/hosting-requests/host_id/{id}/accepted', [HostingRequestController::class, 'getAcceptRequest']);
+    Route::put('hosting-listings/{id}/toggle',[HostingListingController::class, 'toggle']);
 
     Route::get('/hosting-requests', [HostingRequestController::class, 'index']);
     Route::post('/hosting-requests', [HostingRequestController::class, 'store']);

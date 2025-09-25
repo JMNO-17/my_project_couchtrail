@@ -15,7 +15,7 @@ use Illuminate\Contracts\Support\ValidatedData;
 use App\Http\Requests\StoreHostingListingRequest;
 use App\Http\Requests\UpdateHostingListingRequest;
 use App\Repositories\HostListings\HostingListingRepository;
-
+use Illuminate\Http\JsonResponse;
 class HostingListingController extends Controller
 {
     protected $repository;
@@ -319,5 +319,46 @@ public function getHostingByUserId($id)
 }
 
 
+// public function toggle($id)
+// {
+//     $hostinglisting = HostingListing::find($id);
+
+//     if($hostinglisting->is_available == 1)
+//     {
+//         $hostinglisting->is_available = 0;
+//     }
+//     else
+//     {
+//          $hostinglisting->is_available = 1;
+//     }
+
+//     $hostinglisting->save();
+
+//     return $hostinglisting;
+// }
+
+public function toggle($id): JsonResponse
+    {
+        $listing = HostingListing::find($id);
+        if (!$listing) {
+            return response()->json([
+                'success' => 0,
+                'message' => 'Listing not found',
+            ], 404);
+        }
+
+        // flip
+        $listing->is_available = $listing->is_available ? 0 : 1;
+        $listing->save();
+
+        // return normalized payload
+        return response()->json([
+            'success' => 1,
+            'data'    => [
+                'id'            => $listing->id,
+                'is_available'  => (bool) $listing->is_available,
+            ],
+        ]);
+    }
 
 }

@@ -86,33 +86,180 @@ class TravelerController extends Controller
     //     return HostingRequestResource::collection($hostingRequest);
     // }
 
-    public function getTravelerByUserId($id)
+//     public function getTravelerByUserId($id)
+// {
+//     $traveler = Traveler::where('user_id', $id)->first();
+
+//     if (!$traveler) {
+//         return response()->json([
+//             'success' => 0,
+//             'data' => [],
+//             'message' => 'No traveler found for this user.'
+//         ]);
+//     }
+
+//     $hostingRequest = HostingRequest::with('traveler')
+//         ->where('traveler_id', $traveler->id)
+//         ->get();
+
+//     $result = [];
+//         foreach($hostingRequest as $request) {
+//             $hostData = HostingListing::where('user_id',$request->host_id)->first();
+//             $user = User::find($request->host_id)->first();
+//             // dd($user->name);
+//             $request['name'] = $user->name;
+//             $result[] = $hostData;
+//         }
+
+
+//     return response()->json([
+//         'success' => 1,
+//         'data' => $hostingRequest
+//     ]);
+// }
+
+// public function getTravelerByUserId($id)
+// {
+//     // 1) Find the traveler by user_id
+//     $traveler = Traveler::where('user_id', $id)->first();
+
+//     if (!$traveler) {
+//         return response()->json([
+//             'success' => 0,
+//             'data'    => [],
+//             'message' => 'No traveler found for this user.',
+//         ]);
+//     }
+
+//     // 2) Get the most recent hosting request for this traveler
+//     $request = HostingRequest::where('traveler_id', $traveler->id)
+//         ->orderByDesc('created_at')
+//         ->first();
+
+//     if (!$request) {
+//         return response()->json([
+//             'success' => 0,
+//             'data'    => [],
+//             'message' => 'No hosting requests found for this traveler.',
+//         ]);
+//     }
+
+//     // 3) Load the host (User) and their listing
+//     $host    = User::find($request->host_id);              // no ->first()
+//     $listing = HostingListing::where('user_id', $request->host_id)->first();
+
+//     if (!$listing) {
+//         return response()->json([
+//             'success' => 0,
+//             'data'    => [],
+//             'message' => 'Host listing not found.',
+//         ]);
+//     }
+
+//     // 4) Shape the payload EXACTLY like your example + host "name"
+//     $data = [
+//         'id'                 => $listing->id,
+//         'user_id'            => $listing->user_id,
+//         'address'            => $listing->address,
+//         'home_description'   => $listing->home_description,
+//         'max_guests'         => (int) $listing->max_guests,
+//         'amenities'          => is_array($listing->amenities)
+//                                 ? implode(',', $listing->amenities)
+//                                 : (string) $listing->amenities,
+//         'additional_details' => $listing->additional_details,
+//         'is_available'       => (bool) $listing->is_available,
+//         'created_at'         => $listing->created_at,
+//         'updated_at'         => $listing->updated_at,
+//         'name'               => $host?->name,   // host’s name
+//     ];
+
+//     return response()->json([
+//         'success' => 1,
+//         'data'    => $data,
+//     ]);
+// }
+
+public function getTravelerByUserId($id)
 {
+    // 1) Find traveler by user_id
     $traveler = Traveler::where('user_id', $id)->first();
 
     if (!$traveler) {
         return response()->json([
             'success' => 0,
-            'data' => [],
-            'message' => 'No traveler found for this user.'
+            'data'    => [],
+            'message' => 'No traveler found for this user.',
         ]);
     }
 
-    $hostingRequest = HostingRequest::with('traveler')
-        ->where('traveler_id', $traveler->id)
+    // 2) Get ALL hosting requests for this traveler (newest first)
+    $requests = HostingRequest::where('traveler_id', $traveler->id)
+        ->orderByDesc('created_at')
         ->get();
-    $result = [];
-        foreach($hostingRequest as $request) {
-            $hostData = HostingListing::where('user_id',$request->host_id)->first();
-            $result[] = $hostData;
+
+    if ($requests->isEmpty()) {
+        return response()->json([
+            'success' => 1,
+            'data'    => [],
+            'message' => 'No hosting requests found for this traveler.',
+        ]);
+    }
+
+    // 3) Bulk-load hosts and their listings (avoid N+1)
+    $hostIds = $requests->pluck('host_id')->unique()->values();
+
+    $hostsById = User::whereIn('id', $hostIds)->get()->keyBy('id');
+
+    $listingsByUserId = HostingListing::whereIn('user_id', $hostIds)
+        ->get()
+        ->keyBy('user_id');
+
+    // 4) Build payload: one entry per request, shaped like your example
+    $data = $requests->map(function ($req) use ($hostsById, $listingsByUserId) {
+        $host    = $hostsById->get($req->host_id);
+        $listing = $listingsByUserId->get($req->host_id);
+
+        if (!$listing) {
+            // If you prefer to SKIP requests without a listing, return null
+            // and filter below. Otherwise, you could return a minimal stub.
+            return null;
         }
 
+        // amenities → ensure CSV string like "wifi,pool"
+        $amenities = is_array($listing->amenities)
+            ? implode(',', $listing->amenities)
+            : (string) $listing->amenities;
+
+        return [
+            'id'                 => $listing->id,
+            'user_id'            => $listing->user_id,
+            'address'            => $listing->address,
+            'home_description'   => $listing->home_description,
+            'max_guests'         => (int) $listing->max_guests,
+            'amenities'          => $amenities,
+            'additional_details' => $listing->additional_details,
+            'is_available'       => (bool) $listing->is_available,
+            'created_at'         => $listing->created_at,
+            'updated_at'         => $listing->updated_at,
+            'name'               => $host?->name, // host name
+
+            // (Optional, handy for UI)
+            'request_id'         => $req->id,
+            'request_status'     => $req->status,
+            'request_message'    => $req->message,
+            'requested_at'       => $req->created_at,
+        ];
+    })
+    ->filter() // remove nulls if any listing missing
+    ->values();
 
     return response()->json([
         'success' => 1,
-        'data' => $hostingRequest
+        'data'    => $data,
+        'count'   => $data->count(),
     ]);
 }
+
 
 
 public function getTravelerByUid($id)
