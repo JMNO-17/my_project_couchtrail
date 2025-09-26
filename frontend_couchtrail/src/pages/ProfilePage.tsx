@@ -86,6 +86,11 @@ export const ProfilePage = () => {
       }
     };
 
+<<<<<<< Updated upstream
+=======
+    console.log('host data ', )
+
+>>>>>>> Stashed changes
     const getLocation = () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(

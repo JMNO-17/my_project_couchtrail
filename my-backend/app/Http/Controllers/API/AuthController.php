@@ -72,7 +72,7 @@ class AuthController extends Controller
 
         $roleName = $user->getRoleNames()->first();  // returns the first role name as a string
 
-        $user = auth()->guard('api')->user();
+        // $user = auth()->guard('api')->user();
 
         $token = JWTAuth::fromUser($user);
 
