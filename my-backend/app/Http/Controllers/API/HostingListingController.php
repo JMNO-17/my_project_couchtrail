@@ -2,112 +2,77 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Models\HostingImage;
 use Illuminate\Http\Request;
 use App\Models\HostingListing;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreHostingListingRequest;
+use App\Http\Requests\UpdateHostingListingRequest;
+use App\Repositories\HostListings\HostingListingRepository;
 
 class HostingListingController extends Controller
 {
-    // GET /api/hosting-listings
+    protected $repository;
+
+    public function __construct(HostingListingRepository $repository)
+    {
+        $this->repository = $repository;
+    }
+
     public function index()
     {
         $userId = auth()->guard('api')->id();
+        $listings = HostingListing::with('hostImage')->where('user_id', $userId)->get();
 
-        // You can uncomment below for debugging:
-        // return response()->json(HostingListing::all());
+        // Add full URL for profile image
+        $listings->each(function($listing) {
+            $listing->hostImage_url = $listing->hostImage
+                ? asset('storage/' . $listing->hostImage->image_path)
+                : null;
+        });
 
-        $listings = HostingListing::where('host_id', $userId)->get();
         return response()->json($listings);
     }
 
-    // GET /api/hosting-listings/{id}
-    public function show($id)
+    public function store(StoreHostingListingRequest $request)
     {
         $userId = auth()->guard('api')->id();
-        $listing = HostingListing::findOrFail($id);
+        $validatedData = $request->validated();
 
-        if ($listing->host_id !== $userId) {
-            return response()->json(['error' => 'Unauthorized'], 403);
+        $listing = $this->repository->create($validatedData, $userId);
+
+        if ($request->hasFile('profile_image')) {
+            $imageName = time() . '.' . $request->profile_image->extension();
+            $request->profile_image->storeAs('public/hostImage', $imageName);
+
+            HostingImage::create([
+                'hosting_listing_id' => $listing->id,
+                'image_path' => 'hostImage/' . $imageName
+            ]);
         }
 
-        return response()->json($listing);
-    }
-
-    // POST /api/hosting-listings
-    public function store(Request $request)
-    {
-        $userId = auth()->guard('api')->id();
-
-        if (!$userId) {
-            return response()->json(['error' => 'Unauthenticated'], 401);
-        }
-
-        $request->validate([
-            'address' => 'required|string',
-            'home_description' => 'required|string',
-            'max_guests' => 'required|integer',
-            'amenities' => 'required|string',
-            'additional_details' => 'nullable|string',
-            'is_available' => 'required|boolean',
-        ]);
-
-        $listing = HostingListing::create([
-            'host_id' => $userId,
-            'user_id' => $userId,
-            'address' => $request->address,
-            'home_description' => $request->home_description,
-            'max_guests' => $request->max_guests,
-            'amenities' => $request->amenities,
-            'additional_details' => $request->additional_details,
-            'is_available' => $request->is_available,
-        ]);
+        $listing->load('hostImage');
+        $listing->hostImage_url = $listing->hostImage
+            ? asset('storage/' . $listing->hostImage->image_path)
+            : null;
 
         return response()->json($listing, 201);
     }
 
-    // PUT /api/hosting-listings/{id}
-    public function update(Request $request, $id)
+    public function getHostingByUserId($id)
     {
-        $userId = auth()->guard('api')->id();
-        $listing = HostingListing::findOrFail($id);
+        $host = HostingListing::with(['hostImage', 'homeImages'])->where('user_id', $id)->first();
 
-        if ($listing->host_id !== $userId) {
-            return response()->json(['error' => 'Unauthorized'], 403);
+        if (!$host) {
+            return response()->json(['error' => 'Hosting listing not found'], 404);
         }
 
-        $request->validate([
-            'address' => 'sometimes|required|string',
-            'home_description' => 'sometimes|required|string',
-            'max_guests' => 'sometimes|required|integer',
-            'amenities' => 'sometimes|required|string',
-            'additional_details' => 'nullable|string',
-            'is_available' => 'boolean',
-        ]);
+        $host->hostImage_url = $host->hostImage
+            ? asset('storage/' . $host->hostImage->image_path)
+            : null;
 
-        $listing->update($request->only([
-            'address',
-            'home_description',
-            'max_guests',
-            'amenities',
-            'additional_details',
-            'is_available',
-        ]));
+        $host->homeImages_urls = $host->homeImages->map(fn($img) => asset('storage/' . $img->image_path))->toArray();
 
-        return response()->json($listing);
-    }
-
-    // DELETE /api/hosting-listings/{id}
-    public function destroy($id)
-    {
-        $userId = auth()->guard('api')->id();
-        $listing = HostingListing::findOrFail($id);
-
-        if ($listing->host_id !== $userId) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        $listing->delete();
-
-        return response()->json(['message' => 'Listing deleted']);
+        return response()->json($host);
     }
 }

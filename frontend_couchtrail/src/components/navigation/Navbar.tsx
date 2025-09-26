@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/enhanced-button';
 
 import { useAuth } from '@/components/auth/AuthContext';
-import { Home, MessageCircle, Settings, LogOut, Shield, Users } from 'lucide-react';
+import { Home, MessageCircle, Settings, LogOut, Shield, Users, Bell } from 'lucide-react';
 import { Avatar, AvatarFallback } from '../ui/avator';
 import { AvatarImage } from '@radix-ui/react-avatar';
 import {
@@ -19,69 +19,91 @@ export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
 
-    const account  =localStorage.getItem('user');
+  const account = localStorage.getItem('user');
 
-    const users = JSON.parse(account);
+  const users = JSON.parse(account);
 
-  const navItems = [
-    { name: 'Community', href: '/community', icon: Users },
-    { name: 'Messages', href: '/messages', icon: MessageCircle },
-  ];
-
-
-    const adminRoutes = [
-    { name: 'Community', href: '/community', icon: Users },
-  ];
-
-    const userRoutes = [
-    { name: 'Community', href: '/community', icon: Users },
-    { name: 'Messages', href: '/messages', icon: MessageCircle },
-  ];
+  // const navItems = [
+  //   { name: 'Community', href: '/community', icon: Users },
+  //   { name: 'Messages', href: '/messages', icon: MessageCircle },
+  // ];
 
 
-  
-  
+  // const adminRoutes = [
+  //   { name: 'Community', href: '/community', icon: Users },
+  // ];
+
+  // const userRoutes = [
+  //   { name: 'Community', href: '/community', icon: Users },
+  //   { name: 'Messages', href: '/messages', icon: MessageCircle },
+  // ];
+
+
+
+
   const isActivePath = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(path);
   };
+
+  // const [unreadRequests, setUnreadRequests] = useState([]);
+  // const [loading, setLoading] = useState(true);
+
+  // useEffect(() => {
+  //   // Example: replace with your API endpoint
+  //   const fetchUnreadRequests = async () => {
+  //     try {
+  //       const res = await fetch("/api/requests/unread"); 
+  //       const data = await res.json();
+  //       setUnreadRequests(data); // expecting an array
+  //     } catch (err) {
+  //       console.error("Failed to fetch unread requests:", err);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchUnreadRequests();
+  // }, []);
+
+  // const unreadCount = unreadRequests.length;
+
 
   return (
     <nav className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          {/* <Link to="/" className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-glow rounded-lg flex items-center justify-center">
               <Home className="w-4 h-4 text-primary-foreground" />
-            </div> */}
+            </div>
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
               CouchTrail
             </span>
-          {/* </Link> */}
+          </Link>
 
-          
+
 
           {/* Navigation Links for non-admin users */}
-          {user && user.role !== 'admin'  && (
+          {user && user.role !== 'admin' && (
             <div className="hidden md:flex items-center space-x-1">
-           
-              {navItems.map((item) => {
+
+              {/* {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isActivePath(item.href)
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
+                    className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActivePath(item.href)
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
                   >
                     <Icon className="w-4 h-4" />
                     <span>{item.name}</span>
                   </Link>
                 );
-              })}
+              })} */}
             </div>
           )}
 
@@ -98,6 +120,24 @@ export const Navbar: React.FC = () => {
                       </AvatarFallback>
                     </Avatar>
                   </Button>
+
+                  {/* <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {user.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+           
+                    {unreadCount > 0 && (
+                      <span className="absolute top-0 right-0 inline-flex items-center justify-center 
+          px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full 
+          transform translate-x-1/2 -translate-y-1/2">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </Button> */}
+
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
@@ -123,6 +163,16 @@ export const Navbar: React.FC = () => {
                       </Link>
                     </DropdownMenuItem>
                   )}
+
+                  {user.role !== 'admin' && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/requests" className="flex items-center space-x-2">
+                        <Bell className="w-4 h-4" />
+                        <span>Requests Notifications</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+
 
                   {/* Admin Panel only for admins */}
                   {user.isAdmin && (

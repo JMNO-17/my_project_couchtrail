@@ -12,29 +12,43 @@ use App\Models\Traveler;
 class HostController extends Controller
 {
 
-  public function index()
+ public function index(Request $request)
 {
-    $hosts = HostingListing::with('user')->get();
+    $userId = auth()->guard('api')->id();
+    $query = HostingListing::with('user')->where('user_id','!=',$userId);
 
-    // Transform to add user.name and user.avatar to each host
+    if ($request->has('user_id')) {
+        $query->where('user_id', $request->user_id);
+    }
+
+    $hosts = $query->get();
+
+    // Transform the data
     $transformedHosts = $hosts->map(function ($host) {
         return [
             'id' => $host->id,
             'user_id' => $host->user_id,
             'name' => $host->user->name ?? 'Unknown',
             'avatar' => $host->user->avatar ?? null,
-            'location' => $host->location,
+            'address' => $host->address,
             'rating' => $host->rating,
             'review_count' => $host->review_count,
-            'description' => $host->description,
-           'amenities' => array_map('trim', explode(',', $host->amenities)),
-            'is_verified' => $host->is_verified,
-            'response_time' => $host->response_time,
+            'description' => $host->home_description,
+            'amenities' => array_map('trim', explode(',', $host->amenities)),
+            'is_verified' => $host->is_verified ?? false,
+            'response_time' => $host->response_time ?? 'unknown',
         ];
     });
 
     return response()->json($transformedHosts);
 }
+
+    public function show($id) {
+        $host = Host::find($id);
+
+        dd($host);
+        return response()->json([$host, 200]);
+    }
 
 
   public function store(Request $request)

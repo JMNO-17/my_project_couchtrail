@@ -10,8 +10,8 @@ class Host extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
         'user_id',
+        'name',
         'location',
         'avatar',
         'rating',
@@ -23,27 +23,30 @@ class Host extends Model
         'amenities',
         'is_verified',
         'response_time',
-        'is_available'
+        'is_available',
     ];
 
     protected $casts = [
         'amenities' => 'array',
         'is_verified' => 'boolean',
-        'is_available' => 'boolean'
+        'is_available' => 'boolean',
+        'rating' => 'float',
+        'review_count' => 'integer',
+        'max_guests' => 'integer',
     ];
 
+    /**
+     * Relations
+     */
     public function user()
-{
-    return $this->belongsTo(\App\Models\User::class);
-}
-
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function listings()
-{
-    return $this->hasMany(HostingListing::class, 'host_id');
-}
-
-
+    {
+        return $this->hasMany(HostingListing::class, 'host_id');
+    }
 
     public function hostingRequests()
     {

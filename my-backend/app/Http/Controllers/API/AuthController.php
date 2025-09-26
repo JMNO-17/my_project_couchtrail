@@ -39,7 +39,7 @@ class AuthController extends Controller
         'location' => '',
         'avatar' => '',
         'bio' => '',
-        'trip_count' => 0,
+        // 'trip_count' => 0,
         'is_verified' => false,
     ]);
 
@@ -72,7 +72,7 @@ class AuthController extends Controller
 
         $roleName = $user->getRoleNames()->first();  // returns the first role name as a string
 
-        $user = auth()->guard('api')->user();
+        // $user = auth()->guard('api')->user();
 
         $token = JWTAuth::fromUser($user);
 
@@ -117,7 +117,7 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $roleName,
+                'role' => $user->role,
             ];
 
             if (!$user) {

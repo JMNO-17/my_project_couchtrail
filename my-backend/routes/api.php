@@ -9,10 +9,14 @@ use App\Http\Controllers\API\HostingRequestController;
 use App\Http\Controllers\API\HostController;
 use App\Http\Controllers\API\TravelerController;
 use App\Http\Controllers\API\UserRoleController;
+use App\Http\Controllers\API\UserController;
+use App\Http\Controllers\API\ReviewController;
+
 
 // Registration and Login routes
 Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
+
 
 // Protected routes (requires JWT token)
 Route::group(['middleware' => 'auth:api'], function () {
@@ -21,24 +25,27 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('me', [AuthController::class, 'me']);
     Route::get('/admin', [AdminController::class, 'index']);
 
-
     Route::get('/hosting-listings', [HostingListingController::class, 'index']);
     Route::get('/hosting-listings/{id}', [HostingListingController::class, 'show']);
     Route::post('/hosting-listings', [HostingListingController::class, 'store']);
     Route::put('/hosting-listings/{id}', [HostingListingController::class, 'update']);
     Route::delete('/hosting-listings/{id}', [HostingListingController::class, 'destroy']);
 
+    Route::patch('/hosting-requests/{hostingRequest}/status', [HostingRequestController::class, 'updateStatus']);
+    Route::get('/hosting-requests/{id}', [HostingRequestController::class, 'show']);
+    Route::get('/hosting-requests/host_id/{id}',[HostingRequestController::class, 'getRequestByHostId']);
+    Route::get('/hosting-requests/host_id/{id}/accepted', [HostingRequestController::class, 'getAcceptRequest']);
 
     Route::get('/hosting-requests', [HostingRequestController::class, 'index']);
     Route::post('/hosting-requests', [HostingRequestController::class, 'store']);
-    Route::patch('/hosting-requests/{hostingRequest}/status', [HostingRequestController::class, 'updateStatus']);
+    Route::delete('/hosting-requests/{id}',[HostingRequestController::class,'destory']);
 
 
+    Route::get('/hosting-requests/traveler_id/{id}',[TravelerController::class, 'getTravelerByUserId']);
 
     Route::get('/hosts', [HostController::class, 'index']);
     Route::get('/hosts/{id}', [HostController::class, 'show']); // id = user_id
     Route::post('/hosts', [HostController::class, 'store']);
-
 
 
     Route::get('/travelers', [TravelerController::class, 'index']);
@@ -47,4 +54,19 @@ Route::group(['middleware' => 'auth:api'], function () {
 
     Route::get('/me/type', [UserRoleController::class, 'check']);
 
+
+
+    Route::get('/users/{id}', [UserController::class, 'show']);
+
+    Route::get('/users', [UserController::class, 'index']);
+    Route::patch('/users/{id}/toggle-active', [UserController::class, 'toggleActive']);
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    Route::get('/hosting-listings/user/{id}', [HostingListingController::class, 'getHostingByUserId']);
+
+    Route::get('/reviews', [ReviewController::class, 'index']);
+    Route::post('/reviews', [ReviewController::class, 'store']);
+    Route::delete('/reviews/{id}', [ReviewController::class, 'destroy']);
 });
+
+
+
