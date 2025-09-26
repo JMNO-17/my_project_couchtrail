@@ -277,7 +277,7 @@ export const HostingPage = () => {
               </div>
 
               {/* is_available Switch (replaces 1/0 input) */}
-              <div className="flex items-center justify-between rounded-lg border p-3">
+              {/* <div className="flex items-center justify-between rounded-lg border p-3">
                 <div className="space-y-0.5">
                   <Label className="text-base">Available to host</Label>
                   <p className="text-sm text-muted-foreground">
@@ -293,7 +293,7 @@ export const HostingPage = () => {
                     }
                   />
                 </div>
-              </div>
+              </div> */}
 
               {/* Home Images Uploader */}
               <div className="space-y-2">

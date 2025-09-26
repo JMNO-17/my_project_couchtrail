@@ -8,14 +8,16 @@ use Illuminate\Support\Str;
 use App\Models\HostingImage;
 use Illuminate\Http\Request;
 use App\Models\HostingListing;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Contracts\Support\ValidatedData;
 use App\Http\Requests\StoreHostingListingRequest;
 use App\Http\Requests\UpdateHostingListingRequest;
 use App\Repositories\HostListings\HostingListingRepository;
-use Illuminate\Http\JsonResponse;
+
 class HostingListingController extends Controller
 {
     protected $repository;
@@ -113,91 +115,87 @@ class HostingListingController extends Controller
 
 //     return response()->json($listing, 201);
 // }
+  // home images table
 
 public function store(StoreHostingListingRequest $request)
 {
     $userId = auth()->guard('api')->id();
+    $user   = User::findOrFail($userId);
 
-$user = User::find($userId);
-// if($user->role === 'user') {
-    $user->role = 'host';
-
-    $user->save();
-
-    $validatedData = $request->validated();
-
-    // 1) Create the listing first
-    $listing = $this->repository->create($validatedData, $userId);
-
-    // -------------------------------
-    // 2) PROFILE PICS -> public/userProfile/{user_id}/
-    //    Save records into HostingImage
-    // -------------------------------
-
-    // Support both single "profile_image" and multi "profile_images[]"
-    $profileFiles = [];
-
-    if ($request->hasFile('profile_images')) {
-        $profileFiles = $request->file('profile_images'); // array
-    } elseif ($request->hasFile('profile_image')) {
-        $profileFiles = [$request->file('profile_image')]; // single -> arrayify
+    if ($user->role !== 'host') {
+        $user->role = 'host';
+        $user->save();
     }
 
-    if (!empty($profileFiles)) {
+    return DB::transaction(function () use ($request, $userId) {
+        $validatedData = $request->validated();
+
+        // 1) create listing
+        $listing = $this->repository->create($validatedData, $userId);
+
+        // ---- de-dup guard within the same request
+        $seen = [];
+
+        // 2) HOST PROFILE IMAGE(S)  --> public/hostImage/{uuid}.ext
+        $profileFiles = [];
+        if ($request->hasFile('profile_images')) {
+            $profileFiles = $request->file('profile_images');       // array
+        } elseif ($request->hasFile('profile_image')) {
+            $profileFiles = [$request->file('profile_image')];      // single -> array
+        }
+
         foreach ($profileFiles as $file) {
-            if (!$file->isValid()) {
-                continue;
-            }
+            if (!$file || !$file->isValid()) continue;
 
-            $folder   = "userProfile/{$userId}";
-            $filename = Str::uuid()->toString().'.'.$file->getClientOriginalExtension();
+            $hash = hash_file('sha256', $file->getRealPath());
+            if (isset($seen[$hash])) continue;
+            $seen[$hash] = true;
 
-            // Writes to storage/app/public/userProfile/{userId}/{uuid}.ext
-            $path = $file->storeAs($folder, $filename, 'public');
+            $folder   = 'hostImage'; // << host profile image folder
+            $filename = Str::uuid().'.'.$file->getClientOriginalExtension();
+            $path     = $file->storeAs($folder, $filename, 'public'); // storage/app/public/hostImage/...
 
             HostingImage::create([
                 'hosting_listing_id' => $listing->id,
-                'image_path'         => $path, // keep relative path
+                'image_path'         => $path, // keep relative path like "hostImage/xxxx.jpg"
             ]);
         }
-    }
 
-    // -------------------------------
-    // 3) HOME PICS -> public/homeImages/{listing_id}/
-    //    Save records into HomeImages
-    // -------------------------------
+        // 3) HOME IMAGES (ARRAY) --> public/homeImages/{listing_id}/{uuid}.ext
+        $homeFiles = $request->file('home_images', []); // must be array per your rules
+        foreach ($homeFiles as $file) {
+            if (!$file || !$file->isValid()) continue;
 
-if ($request->hasFile('home_images')) {
-    $homeFiles = $request->file('home_images');
+            $hash = hash_file('sha256', $file->getRealPath());
+            if (isset($seen[$hash])) continue;
+            $seen[$hash] = true;
 
-    // Normalize to array (handles single upload too)
-    if ($homeFiles instanceof UploadedFile) {
-        $homeFiles = [$homeFiles];
-    }
+            $folder   = "homeImages/{$listing->id}"; // << home images folder
+            $filename = Str::uuid().'.'.$file->getClientOriginalExtension();
+            $path     = $file->storeAs($folder, $filename, 'public'); // storage/app/public/homeImages/{listing}/...
 
-    foreach ($homeFiles as $file) {
-        if (!$file || !$file->isValid()) {
-            continue;
+            HomeImages::create([
+                'hosting_listing_id' => $listing->id,
+                'image_path'         => $path,
+            ]);
         }
 
-        $folder   = "homeImages/{$listing->id}";
-        $filename = Str::uuid()->toString().'.'.$file->getClientOriginalExtension();
+        // 4) return with relations + absolute URLs
+        $listing->load(['hostImage', 'homeImages']);
 
-        // Writes to storage/app/public/homeImages/{listingId}/{uuid}.ext
-        $path = $file->storeAs($folder, $filename, 'public');
+        $listing->host_profile_image_url = optional($listing->hostImage)->image_path
+            ? asset('storage/'.ltrim($listing->hostImage->image_path, '/'))
+            : null;
 
-        HomeImages::create([
-            'hosting_listing_id' => $listing->id,
-            'image_path'         => $path, // keep relative path
-        ]);
-    }}
+        $listing->home_images_urls = $listing->homeImages->map(
+            fn ($img) => asset('storage/'.ltrim($img->image_path, '/'))
+        )->values();
 
-    // 4) Return listing with relations loaded
-    //    (adjust relation names to match your models)
-    $listing->load(['hostImage', 'homeImages']);
-
-    return response()->json($listing, 201);
+        return response()->json($listing, 201);
+    });
 }
+
+
 
 
     public function update(UpdateHostingListingRequest $request, $id)

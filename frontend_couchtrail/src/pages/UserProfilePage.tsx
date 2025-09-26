@@ -97,6 +97,9 @@ const [guestError, setGuestError] = useState<string>('');
           image: userRes.data?.image ?? []
         });
 
+
+        console.log('user stata ',  userRes.data)
+
         setHostInfo(host.data);
         setTravelerInfo(travelerRes.data)
         setReviews(Array.isArray(reviewRes.data) ? reviewRes.data : []);

@@ -13,15 +13,21 @@ class StoreHostingListingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'address' => 'string|max:255',
-            'home_description' => 'string',
-            'max_guests' => 'integer|min:1',
-            'amenities' => 'string',
-            'additional_details' => 'nullable|string',
-            'is_available' => 'boolean',
-            // 'images' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'profile_image'=> 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'home_images'=> 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        'address'            => 'sometimes|string|max:255',
+        'home_description'   => 'sometimes|string',
+        'max_guests'         => 'sometimes|integer|min:1',
+        'amenities'          => 'sometimes|string',
+        'additional_details' => 'sometimes|nullable|string',
+        'is_available'       => 'sometimes|boolean',
+
+        // Profile image: allow single OR array (keep as-is if you want both)
+        'profile_image'    => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        'profile_images'   => 'sometimes|array',
+        'profile_images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+
+        // Home images: MUST be an array
+        'home_images'      => 'sometimes|array|min:1',
+        'home_images.*'    => 'image|mimes:jpeg,png,jpg,gif|max:2048',
         ];
     }
 }

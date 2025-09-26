@@ -255,7 +255,7 @@ export const ProfilePage = () => {
                 </div>
 
                 {/* Status row with Switch (replaces badge) */}
-                <div className="flex items-center justify-between">
+                {/* <div className="flex items-center justify-between">
                   <span className="font-medium">Status:</span>
                   <div className="flex items-center gap-2">
                     <Switch
@@ -267,7 +267,7 @@ export const ProfilePage = () => {
                       {Boolean(hostData.is_available) ? "Active" : "Inactive"}
                     </span>
                   </div>
-                </div>
+                </div> */}
 
                 <div>
                   <span className="font-medium">Amenities: </span>
