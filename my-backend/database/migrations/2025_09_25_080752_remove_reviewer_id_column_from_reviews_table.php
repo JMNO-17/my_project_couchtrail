@@ -6,17 +6,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up()
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
     {
         Schema::table('reviews', function (Blueprint $table) {
-            $table->unsignedBigInteger('reviewed_id')->after('reviewer_name');
+            $table->dropForeign('reviewer_id');
+            $table->dropColumn('reviewer_id');
         });
     }
 
-    public function down()
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
     {
         Schema::table('reviews', function (Blueprint $table) {
-            $table->dropColumn('reviewed_id');
+            //
         });
     }
 };

@@ -61,9 +61,12 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/users', [UserController::class, 'index']);
     Route::patch('/users/{id}/toggle-active', [UserController::class, 'toggleActive']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    Route::get('/hosting-listings/user/{id}', [HostingListingController::class, 'getHostingByUserId']);
 
     Route::get('/reviews', [ReviewController::class, 'index']);
-
-    Route::get('/hosting-listings/user/{id}', [HostingListingController::class, 'getHostingByUserId']);
+    Route::post('/reviews', [ReviewController::class, 'store']);
+    Route::delete('/reviews/{id}', [ReviewController::class, 'destroy']);
 });
+
+
 
