@@ -23,20 +23,20 @@ export const Navbar: React.FC = () => {
 
   const users = JSON.parse(account);
 
-  const navItems = [
-    { name: 'Community', href: '/community', icon: Users },
-    { name: 'Messages', href: '/messages', icon: MessageCircle },
-  ];
+  // const navItems = [
+  //   { name: 'Community', href: '/community', icon: Users },
+  //   { name: 'Messages', href: '/messages', icon: MessageCircle },
+  // ];
 
 
-  const adminRoutes = [
-    { name: 'Community', href: '/community', icon: Users },
-  ];
+  // const adminRoutes = [
+  //   { name: 'Community', href: '/community', icon: Users },
+  // ];
 
-  const userRoutes = [
-    { name: 'Community', href: '/community', icon: Users },
-    { name: 'Messages', href: '/messages', icon: MessageCircle },
-  ];
+  // const userRoutes = [
+  //   { name: 'Community', href: '/community', icon: Users },
+  //   { name: 'Messages', href: '/messages', icon: MessageCircle },
+  // ];
 
 
 
@@ -88,7 +88,7 @@ export const Navbar: React.FC = () => {
           {user && user.role !== 'admin' && (
             <div className="hidden md:flex items-center space-x-1">
 
-              {navItems.map((item) => {
+              {/* {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
@@ -103,7 +103,7 @@ export const Navbar: React.FC = () => {
                     <span>{item.name}</span>
                   </Link>
                 );
-              })}
+              })} */}
             </div>
           )}
 

@@ -1,3 +1,4 @@
+// App.tsx
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -8,48 +9,42 @@ import { AuthProvider, useAuth } from "@/components/auth/AuthContext";
 import { Navbar } from "@/components/navigation/Navbar";
 
 // Pages
-import Index from "./pages/Index";
-import { AuthPage } from "./pages/AuthPage";
-import { CommunityPage } from "./pages/CommunityPage";
-import { MessagesPage } from "./pages/MessagesPage";
-import { RequestsPage } from "./pages/RequestsPage";
-import { ReviewsPage } from "./pages/ReviewsPage";
+import Index from "./pages/Index"; // default export
+import { AuthPage } from "./pages/AuthPage"; // named export
+import { CommunityPage } from "./pages/CommunityPage"; // named export
+import { MessagesPage } from "./pages/MessagesPage"; // named export
+import { RequestsPage } from "./pages/RequestsPage"; // named export
+import { ReviewsPage } from "./pages/ReviewsPage"; // named export
+// named export
+import { UserProfilePage } from "./pages/UserProfilePage"; // named export
+import { HostingPage } from "./pages/HostingPage"; // named export
+import { AdminPanel } from "@/components/admin/AdminPanel"; // named export
+import NotFound from "./pages/NotFound"; // default export
 import { ProfilePage } from "./pages/ProfilePage";
-import { UserProfilePage } from "./pages/UserProfilePage";
-import { HostingPage } from "./pages/HostingPage";
-import { AdminPanel } from "@/components/admin/AdminPanel";
-import NotFound from "./pages/NotFound";
-import axios from "axios";
 
 type ProtectedProps = {
   children: React.ReactNode;
   adminOnly?: boolean;
 };
 
+// Protected route wrapper
 const ProtectedRoute = ({ children, adminOnly = false }: ProtectedProps) => {
   const { user } = useAuth();
 
-  // Not logged in → go to /auth
   if (!user) return <Navigate to="/auth" replace />;
 
-  // Normalize admin check: allow either role === "admin" or bool flag isAdmin
   const isAdmin = user.role === "admin" || user.isAdmin === true;
-
   if (adminOnly && !isAdmin) return <NotFound />;
 
   return <>{children}</>;
 };
 
-// const requestData = await axios.get(`/hosting-requests/${id}`)
-
-// console.log(requestData);
-
+// Main App content
 const AppContent: React.FC = () => {
   const { user } = useAuth();
 
   return (
     <>
-      {/* Show navbar only when logged in */}
       {user && <Navbar />}
 
       <Routes>
@@ -66,7 +61,22 @@ const AppContent: React.FC = () => {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/hosting"
+          element={
+            <ProtectedRoute>
+              <HostingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/requests"
+          element={
+            <ProtectedRoute>
+              <RequestsPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/messages"
           element={
@@ -76,26 +86,9 @@ const AppContent: React.FC = () => {
           }
         />
 
+        {/* Reviews page */}
         <Route
-          path="/hosting"
-          element={
-            <ProtectedRoute>
-              <HostingPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/requests"
-          element={
-            <ProtectedRoute>
-              <RequestsPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/reviews"
+          path="/reviews/:userId"
           element={
             <ProtectedRoute>
               <ReviewsPage />
@@ -113,7 +106,7 @@ const AppContent: React.FC = () => {
           }
         />
 
-        {/* Other user's profile (from CommunityPage) */}
+        {/* Other user's profile */}
         <Route
           path="/profile/:userId"
           element={
@@ -140,6 +133,7 @@ const AppContent: React.FC = () => {
   );
 };
 
+// Main App
 const App: React.FC = () => {
   const queryClient = React.useMemo(
     () =>

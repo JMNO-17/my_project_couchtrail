@@ -42,6 +42,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
     number_of_guests: '',
     is_available: false,
     images: [] as string[],
+    image: []
   });
 
   const [hostInfo, setHostInfo] = useState<any>();
@@ -52,6 +53,10 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
   const [requestData, setRequestData] = useState({id: '',traveler_id: '',host_id: '', user_id: '' ,name: '',location: '', message: '', date: '', number_of_guests: '', status: 'pending',created_at: ''});
   const [travelerRequest, setTravelerRequest] = useState<any>();
 
+
+  const maxGuests = Math.max(1, Number(userInfo.number_of_guests || 1));
+const [guestError, setGuestError] = useState<string>('');
+
   const isSelf = user?.id === Number(userId);
 
   useEffect(() => {
@@ -61,9 +66,10 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
       try {
         const [userRes, travelerRes, reviewRes] = await Promise.all([
           API.get(`/users/${userId}`),
-          API.get(`/travelers`, { params: { user_id: userId } }),
+          API.get(`/traveler/user_id/${user.id}`),
           API.get(`/reviews`, { params: { reviewed_id: userId } })
         ]);
+        console.log('user id here',userId)
 
         const host = await API.get(`/hosting-listings/user/${userId}`);
 
@@ -73,6 +79,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
           seth(false)
         }
 
+        console.log(userRes.data);
         const hostData = Array.isArray(userRes.data) && userRes.data.length > 0 ? userRes.data[0] : null;
 
         setUserInfo({
@@ -86,11 +93,12 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
           amenities: host.data?.amenities ? host.data.amenities.split(',') : [],
           number_of_guests: host.data?.max_guests ?? '1',
           is_available: host.data?.is_available == 1,
-          images: userRes.data?.image ?? [],
+          images: userRes.data?.images ?? [],
+          image: userRes.data?.image ?? []
         });
 
         setHostInfo(host.data);
-        setTravelerInfo(Array.isArray(travelerRes.data) && travelerRes.data.length > 0 ? travelerRes.data[0] : null);
+        setTravelerInfo(travelerRes.data)
         setReviews(Array.isArray(reviewRes.data) ? reviewRes.data : []);
       } catch (err) {
         console.error('Error fetching profile data:', err);
@@ -147,69 +155,167 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
   const canSendRequest = !isSelf && user?.role === 'user' && isTraveler;
   const averageRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
 
-  const handleSendRequest = async () => {
-    if (!requestData.location || !requestData.message || !requestData.date) {
-      toast({
-        title: 'Missing Information',
-        description: 'Please fill in all fields',
-        variant: 'destructive'
-      });
-      return;
-    }
+console.log('roel ', user.role)
+  // const handleSendRequest = async () => {
+  //   if (!requestData.location || !requestData.message || !requestData.date) {
+  //     toast({
+  //       title: 'Missing Information',
+  //       description: 'Please fill in all fields',
+  //       variant: 'destructive'
+  //     });
+  //     return;
+  //   }
 
-    try {
-      const value = {
-        traveler_id: travelerInfo.id,
-        host_id: userId,
-        location: requestData.location,
-        message: requestData.message,
-        date: requestData.date,
-        number_of_guests: requestData.number_of_guests,
-        status:requestData.status,
-        name: requestData.name,
-        created_at: requestData.created_at,
-        user_id: requestData.user_id,
-      }
-      console.log('values ', value)
-      // const response = await API.post('/hosting-requests', {
-      //   value
-      // });
-      const response = await API.post('/hosting-requests', value);
+  //   try {
+  //     const value = {
+  //       traveler_id: travelerInfo.id,
+  //       host_id: userId,
+  //       location: requestData.location,
+  //       message: requestData.message,
+  //       date: requestData.date,
+  //       number_of_guests: requestData.number_of_guests,
+  //       status:requestData.status,
+  //       name: requestData.name,
+  //       created_at: requestData.created_at,
+  //       user_id: requestData.user_id,
+  //     }
+  //     console.log('values ', value)
+  //     // const response = await API.post('/hosting-requests', {
+  //     //   value
+  //     // });
+  //     const response = await API.post('/hosting-requests', value);
 
-      console.log('g', response.data);
+  //     console.log('g', response.data);
 
 
-      setTravelerRequest({
-        traveler_id: travelerInfo.id,
-        host_id: userId,
-        location: requestData.location,
-        message: requestData.message,
-        date: requestData.date,
-        number_of_guests: requestData.number_of_guests,
-        created_at: requestData.created_at,
-        user_id: requestData.user_id,
-        name:requestData.name,
-        status:requestData.status,
-        id:requestData.id,
-      })
+  //     setTravelerRequest({
+  //       traveler_id: travelerInfo.id,
+  //       host_id: userId,
+  //       location: requestData.location,
+  //       message: requestData.message,
+  //       date: requestData.date,
+  //       number_of_guests: requestData.number_of_guests,
+  //       created_at: requestData.created_at,
+  //       user_id: requestData.user_id,
+  //       name:requestData.name,
+  //       status:requestData.status,
+  //       id:requestData.id,
+  //     })
 
-      console.log('this is traveler req ', travelerRequest)
+  //     console.log('this is traveler req ', travelerRequest)
 
-      toast({
-        title: 'Request Sent',
-        description: `Hosting request sent to ${userInfo.name}`,
-      });
+  //     toast({
+  //       title: 'Request Sent',
+  //       description: `Hosting request sent to ${userInfo.name}`,
+  //     });
 
-      setShowRequestForm(false);
-      setRequestData({id: '',traveler_id: '',host_id: '', user_id: '' ,name: '',location: '', message: '', date: '', number_of_guests: '', status: 'pending',created_at: ''});
-    } catch (err) {
-      toast({
-        title: 'Error',
-        description: 'Failed to send request',
-        variant: 'destructive',
-      });
-    }
-  };
+  //     setShowRequestForm(false);
+  //     setRequestData({id: '',traveler_id: '',host_id: '', user_id: '' ,name: '',location: '', message: '', date: '', number_of_guests: '', status: 'pending',created_at: ''});
+  //   } catch (err) {
+  //     toast({
+  //       title: 'Error',
+  //       description: 'Failed to send request',
+  //       variant: 'destructive',
+  //     });
+  //   }
+  // };
+
+  // Replace ONLY your handleSendRequest with this:
+
+// Replace ONLY this function
+const handleSendRequest = async () => {
+  if (!requestData.location || !requestData.message || !requestData.date) {
+    toast({
+      title: 'Missing Information',
+      description: 'Please fill in all fields',
+      variant: 'destructive'
+    });
+    return;
+  }
+
+  try {
+    // Ensure numeric IDs
+    const travelerId = Number(travelerInfo?.id);
+    const hostId = Number(userId);
+
+    // Normalize date to YYYY-MM-DD (Laravel 'date' friendly)
+    const d = new Date(requestData.date);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const dateStr = isNaN(d.getTime()) ? String(requestData.date) : `${yyyy}-${mm}-${dd}`;
+
+    // Build CLEAN payload: only fields your API expects/validates
+    console.log('adsff ', travelerInfo)
+    console.log('asdfasdf ', travelerInfo.id)
+    const payload = {
+      traveler_id: travelerInfo.id,
+      host_id: hostId,
+      location: String(requestData.location).trim(),
+      message: String(requestData.message).trim(),
+      date: dateStr,
+      // keep if backend still requires this; otherwise remove this line
+      number_of_guests: requestData.number_of_guests
+        ? Number(requestData.number_of_guests)
+        : 1,
+      status: requestData.status ? String(requestData.status).trim() : 'pending',
+    };
+
+    console.log();
+
+    console.log('payload', payload);
+
+    const response = await API.post('/hosting-requests', payload);
+    console.log('created', response.data);
+
+    // keep your existing UI/state flows
+    setTravelerRequest({
+      traveler_id: travelerInfo.id,
+      host_id: userId,
+      location: requestData.location,
+      message: requestData.message,
+      date: requestData.date,
+      number_of_guests: requestData.number_of_guests,
+      created_at: requestData.created_at,
+      user_id: requestData.user_id,
+      name: requestData.name,
+      status: requestData.status,
+      id: requestData.id,
+    });
+
+    toast({
+      title: 'Request Sent',
+      description: `Hosting request sent to ${userInfo.name}`,
+    });
+
+    setShowRequestForm(true);
+    setRequestData({
+      id: '',
+      traveler_id: '',
+      host_id: '',
+      user_id: '',
+      name: '',
+      location: '',
+      message: '',
+      date: '',
+      number_of_guests: '',
+      status: 'pending',
+      created_at: ''
+    });
+  } catch (err: any) {
+    const resp = err?.response?.data;
+    console.error('Send request failed', resp || err);
+    toast({
+      title: 'Error',
+      description: resp?.message
+        ? `${resp.message}${resp.errors ? ' — ' + JSON.stringify(resp.errors) : ''}`
+        : 'Failed to send request',
+      variant: 'destructive',
+    });
+  }
+};
+
+// console.log(userr)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 p-4">
@@ -286,7 +392,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
                   </div>
                 )} */}
 
-                {isTraveler && !!isHost && (
+                {/* {isTraveler && !!isHost && ( */}
                   <div className="space-y-2 text-center flex items-center justify-evenly">
                     {/* <p className="text-muted-foreground">
                       Traveler exploring the world and connecting with locals.
@@ -296,7 +402,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
 
                       <div className="flex items-center gap-2 justify-center">
                         <img
-                          src={userInfo?.images}
+                          src={userInfo?.image}
                           alt="Profile"
                           className="h-40 w-45 rounded-full shadow-md object-cover"
                         />
@@ -407,7 +513,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
 
 
                   </div>
-                )}
+                {/* // )} */}
 
 
                 {/* <div className="border-t mt-4 ml-0 mr-0 p-0"></div> */}
@@ -416,7 +522,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
                 {/* {canSendRequest && hostInfo && ( */}
 
 
-                {isHost && (
+                {user.role != 'host' && (
                   <div className="mt-4 pt-4 ml-[530px]">
 
                     <Button onClick={() => setShowRequestForm(!showRequestForm)} className="mr-2">
@@ -434,7 +540,33 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
           </CardContent>
         </Card>
 
-        {showRequestForm || canSendRequest || (
+       
+        {/* Photos Gallery */}
+        {/* {userInfo.image && userInfo.image.length > 0 && ( */}
+          <Card className="shadow-travel">
+            <CardHeader>
+              <CardTitle>Photos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {userInfo.images.map((photo, index) => (
+                  <div key={index} className="aspect-square rounded-lg overflow-hidden bg-muted">
+                    <img
+                      src={photo}
+                      alt={`${userInfo.name}'s photo ${index + 1}`}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-200 cursor-pointer"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop';
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+           {showRequestForm  || (
           <Card>
             <CardHeader>
               <CardTitle>Send Hosting Request</CardTitle>
@@ -459,7 +591,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
                   onChange={(e) => setRequestData(prev => ({ ...prev, date: e.target.value }))}
                 />
               </div>
-              <div>
+              {/* <div>
                 <Label>Number of Guest</Label>
                 <Input
                   name='number_of_guests'
@@ -467,7 +599,41 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
                   value={requestData.number_of_guests}
                   onChange={(e) => setRequestData(prev => ({ ...prev, number_of_guests: e.target.value }))}
                 />
-              </div>
+              </div> */}
+              <div>
+  <Label>Number of Guests</Label>
+  <Input
+    name="number_of_guests"
+    type="number"
+    min={1}
+    max={maxGuests}                 // hard UI cap
+    value={requestData.number_of_guests}
+    onChange={(e) => {
+      const raw = e.target.value;
+      // allow empty while typing
+      if (raw === '') {
+        setRequestData(prev => ({ ...prev, number_of_guests: '' }));
+        setGuestError('');
+        return;
+      }
+      const n = Math.max(1, Math.floor(Number(raw) || 1));
+      if (n > maxGuests) {
+        setGuestError(`Max allowed by host is ${maxGuests}.`);
+      } else {
+        setGuestError('');
+      }
+      // clamp to max in state
+      setRequestData(prev => ({ ...prev, number_of_guests: String(Math.min(n, maxGuests)) }));
+    }}
+  />
+  {guestError && (
+    <p className="mt-1 text-sm text-red-600">{guestError}</p>
+  )}
+  <p className="mt-1 text-xs text-muted-foreground">
+    Host allows up to <b>{maxGuests}</b> guest{maxGuests > 1 ? 's' : ''}.
+  </p>
+</div>
+
               <div>
                 <Label>Message</Label>
                 <Textarea
@@ -489,31 +655,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ passedUserId }
           </Card>
         )}
 
-        {/* Photos Gallery */}
-        {/* {userInfo.photos && userInfo.photos.length > 0 && (
-          <Card className="shadow-travel">
-            <CardHeader>
-              <CardTitle>Photos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {userInfo.photos.map((photo, index) => (
-                  <div key={index} className="aspect-square rounded-lg overflow-hidden bg-muted">
-                    <img
-                      src={photo}
-                      alt={`${userInfo.name}'s photo ${index + 1}`}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-200 cursor-pointer"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop';
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )} */}
+        {/* )} */}
 
         {/* {reviews.length > 0 && (
           <Card>
