@@ -71,7 +71,7 @@ const Index = () => {
           <img
             src="./public/hero-travel.jpg"
             alt="Travel Community"
-            className="w-full h-full object-cover"
+            className="w-full object-cover h-[100vh]"
           />
           <div className="absolute inset-0 bg-gradient-to-br from-primary/70 via-primary/50 to-primary-glow/30" />
         </div>
@@ -93,16 +93,16 @@ const Index = () => {
                 Start Your Journey
               </Link>
             </Button>
-            <Button variant="outline" size="xl" className="bg-white/10 border-white/30 text-white hover:bg-white/20">
+            {/* <Button variant="outline" size="xl" className="bg-white/10 border-white/30 text-white hover:bg-white/20">
               <Users className="w-5 h-5 mr-2" />
               Explore Community
-            </Button>
+            </Button> */}
           </div>
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-gradient-to-r from-primary/5 to-primary-glow/5">
+      {/* <section className="py-16 bg-gradient-to-r from-primary/5 to-primary-glow/5">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
@@ -115,10 +115,10 @@ const Index = () => {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Features Section */}
-      <section className="py-20 bg-background">
+      {/* <section className="py-20 bg-background">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
@@ -150,10 +150,10 @@ const Index = () => {
             })}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-primary/10 via-primary-glow/5 to-secondary/10">
+      {/* <section className="py-20 bg-gradient-to-br from-primary/10 via-primary-glow/5 to-secondary/10">
         <div className="max-w-4xl mx-auto text-center px-6">
           <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
             Ready to Start Your Adventure?
@@ -177,7 +177,7 @@ const Index = () => {
             </Button>
           </div>
         </div>
-      </section>
+      </section> */}
     </div>
   );
 };

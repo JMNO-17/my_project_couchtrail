@@ -13,7 +13,6 @@ class HostingListing extends Model
 
     protected $fillable = [
         'user_id',
-        'host_id',
         'address',
         'home_description',
         'max_guests',
@@ -26,14 +25,19 @@ class HostingListing extends Model
         'is_available' => 'boolean',
     ];
 
-    public function host()
-{
-    return $this->belongsTo(Host::class, 'host_id');
-}
+    // Relation with User
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class);
+    }
 
- public function user()
-{
-    return $this->belongsTo(\App\Models\User::class);
-}
 
+public function hostImage()
+{
+    return $this->hasOne(HostingImage::class, 'hosting_listing_id');
+}
+public function homeImages()
+{
+    return $this->hasMany(HostingImage::class, 'hosting_listing_id');
+}
 }
